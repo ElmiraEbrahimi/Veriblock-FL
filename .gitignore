@@ -1,0 +1,5 @@
+# Project exclude paths
+/Devices/MiddleWare/node_modules/
+
+.venv/*
+.idea/*
