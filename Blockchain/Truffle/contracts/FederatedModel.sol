@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./verifier.sol";
@@ -176,6 +177,17 @@ contract FederatedModel {
 
     //
     //
+    event RunMovingAverage(uint256 result);
+
+    function getTempGlobalAndParticipants() public view returns(int256[][] memory, int256[] memory, uint) {
+        return (temp_global_weights, temp_global_bias, participating_devices.length);
+    }
+
+    function setTempGlobal(int256[][] memory newWeights, int256[] memory newBias) external {
+        temp_global_weights = newWeights;
+        temp_global_bias = newBias; 
+    }
+
     function update_with_proof(
         int256[][] calldata local_weights,
         int256[] calldata local_bias,
@@ -190,8 +202,9 @@ contract FederatedModel {
         address user = tx.origin;
         if (this.participantsCount() == 0) {
             participating_devices.push(user);
-            this.movingAverageWeights(local_weights);
-            this.movingAverageBias(local_bias);
+            // this.movingAverageWeights(local_weights); // *
+            // this.movingAverageBias(local_bias); // *
+            emit RunMovingAverage(100);
         } else {
             for (uint256 i = 0; i < this.participantsCount(); i++) {
                 if (user == participating_devices[i]) {
@@ -200,8 +213,9 @@ contract FederatedModel {
             }
             if (newUser) {
                 participating_devices.push(user);
-                this.movingAverageWeights(local_weights);
-                this.movingAverageBias(local_bias);
+                // this.movingAverageWeights(local_weights); // *
+                // this.movingAverageBias(local_bias); // *
+                emit RunMovingAverage(100);
             }
         }
     }
@@ -215,8 +229,9 @@ contract FederatedModel {
         address user = tx.origin;
         if (this.participantsCount() == 0) {
             participating_devices.push(user);
-            this.movingAverageWeights(local_weights);
-            this.movingAverageBias(local_bias);
+            // this.movingAverageWeights(local_weights);
+            // this.movingAverageBias(local_bias);
+            emit RunMovingAverage(100);
         } else {
             for (uint256 i = 0; i < this.participantsCount(); i++) {
                 if (user == participating_devices[i]) {
@@ -225,8 +240,9 @@ contract FederatedModel {
             }
             if (newUser) {
                 participating_devices.push(user);
-                this.movingAverageWeights(local_weights);
-                this.movingAverageBias(local_bias);
+                // this.movingAverageWeights(local_weights);
+                // this.movingAverageBias(local_bias);
+                emit RunMovingAverage(100);
             }
         }
     }

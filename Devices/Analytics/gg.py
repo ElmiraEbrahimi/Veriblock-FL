@@ -17,7 +17,7 @@ activity_wording = {
 
 
 markers = [".", "x", "2", "1", "X", "+", "d", "3"]
-BASE_PATH = "/home/nikolas/MEGA/Workplace/Informatik/Masterarbeit/Implementation/PythonProject/MasterThesis_SoftwareEngineering/Devices/MiddleWare/Analytics"
+BASE_PATH = "/D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/MiddleWare/Analytics"
 
 # %%
 

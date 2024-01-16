@@ -9,9 +9,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, accuracy_score
 import pandas as pd
 
-from Devices.Analytics.Analytics import Analytics
-from Devices.MessageBroker.Consumer import Consumer
-from Devices.MiddleWare.NeuralNet import Network, FCLayer, mse_prime, mse
+from Analytics.Analytics import Analytics
+from MessageBroker.Consumer import Consumer
+from MiddleWare.NeuralNet import Network, FCLayer, mse_prime, mse
 
 
 def print_report(device, model, X_test, y_test):
@@ -267,16 +267,16 @@ class MiddleWare:
 
         zokrates = "zokrates"
         verification_base = self.config["DEFAULT"]["VerificationBase"]
-        weights, weights_sign = convert_matrix(w)
-        bias, bias_sign = convert_matrix(b)
+        global_weights, global_weights_sign = convert_matrix(w)
+        global_bias, global_bias_sign = convert_matrix(b)
         weights_new, _ = convert_matrix(w_new)
         bias_new, _ = convert_matrix(b_new)
         x, x_sign = convert_matrix(x_train)
         args = [
-            weights,
-            weights_sign,
-            bias,
-            bias_sign,
+            global_weights,
+            global_weights_sign,
+            global_bias,
+            global_bias_sign,
             x,
             x_sign,
             y_train,
@@ -353,6 +353,7 @@ class MiddleWare:
             )
             if outstanding_update:
                 t = time.time()
+                # get from blockchain:
                 balance = self.blockChainConnection.get_account_balance(self.accountNR)
                 global_weights = self.blockChainConnection.get_globalWeights(
                     self.accountNR
@@ -360,6 +361,7 @@ class MiddleWare:
                 global_bias = self.blockChainConnection.get_globalBias(self.accountNR)
                 lr = self.blockChainConnection.get_LearningRate(self.accountNR)
                 self.precision = self.blockChainConnection.get_Precision(self.accountNR)
+                # init blockchain vars to model:
                 self.model.set_precision(precision=self.precision)
                 self.model.set_learning_rate(lr)
                 self.model.set_weights(global_weights)

@@ -40,7 +40,7 @@ zokrates_compile = [
     zokrates,
     "compile",
     "-i",
-    "/home/nikolas/MEGA/Workplace/Informatik/Masterarbeit/Implementation/PythonProject/MasterThesis_SoftwareEngineering/Verification/ZoKrates/root.zok",
+    "./Verification/ZoKrates/root.zok",
     "--allow-unconstrained-variables",
 ]
 g = subprocess.run(zokrates_compile, capture_output=True)
@@ -77,7 +77,7 @@ learning_rate = 10
 Y = []
 out = None
 for X in x:
-    rand_int = np.random.random_integers(1, ac)
+    rand_int = np.random.randint(1, ac)
     y_true = np.zeros(shape=(ac,))
     y_true[rand_int - 1] = precision
     Y.append(rand_int)

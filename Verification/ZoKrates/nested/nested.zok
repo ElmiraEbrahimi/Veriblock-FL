@@ -1,0 +1,8 @@
+from "snark/gm17" import main as verify, Proof, VerificationKey;
+
+const u32 SIGNATURE_PROOF_INPUTS = 8;
+const u32 SIGNATURE_VERIFICATION_KEY_SIZE = SIGNATURE_PROOF_INPUTS + 1;
+
+def main(Proof<SIGNATURE_PROOF_INPUTS> signatureProof, VerificationKey<SIGNATURE_VERIFICATION_KEY_SIZE> signatureKey) {
+    assert(verify(signatureProof, signatureKey));
+}

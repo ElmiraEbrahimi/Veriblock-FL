@@ -3,8 +3,7 @@ import numpy as np
 import os
 import re
 
-
-source = "data/iot_data"
+source = "Devices/Edge_Device/data/iot_data"
 
 
 def whole_merge():
@@ -51,7 +50,7 @@ def whole_merge():
         "a18": 18,
         "a19": 19,
     }
-    out = "data/outfile_merged.txt"
+    out = "Devices/Edge_Device/data/outfile_merged.txt"
 
     for root, dirs, files in os.walk(source, topdown=True):
         for name in files:
@@ -76,12 +75,12 @@ def whole_merge():
     train = df.iloc[: int(0.9 * len(df))]
     test = df.iloc[int(0.9 * len(df)) :]
     train.to_csv(
-        "/home/nikolas/MEGA/Workplace/Informatik/Masterarbeit/Implementation/PythonProject/MasterThesis_SoftwareEngineering/Devices/Edge_Device/data/train.txt",
+        "Devices/Edge_Device/data/train.txt",
         index=False,
         header=False,
     )
     test.to_csv(
-        "/home/nikolas/MEGA/Workplace/Informatik/Masterarbeit/Implementation/PythonProject/MasterThesis_SoftwareEngineering/Devices/Edge_Device/data/test.txt",
+        "Devices/Edge_Device/data/test.txt",
         index=False,
         header=False,
     )
@@ -106,13 +105,10 @@ def divide_participants():
                             temp.append(g)
                     data = temp
                     p[participant].extend(data)
-    with open(
-        "/home/nikolas/MEGA/Workplace/Informatik/Masterarbeit/Implementation/PythonProject/MasterThesis_SoftwareEngineering/Devices/Edge_Device/data/test_file.txt",
-        "w",
-    ) as t:
+    with open("Devices/Edge_Device/data/test_file.txt", "w") as t:
         for i in range(1, 9):
             device = "Device_" + str(i)
-            out_path = os.path.join("data", device)
+            out_path = os.path.join("Devices/Edge_Device/data", device)
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
             with open(os.path.join(out_path, "device_data.txt"), "w") as f:
@@ -133,5 +129,5 @@ def divide_participants():
 
 
 if __name__ == "__main__":
-    # divide_participants()
+    divide_participants()
     whole_merge()
