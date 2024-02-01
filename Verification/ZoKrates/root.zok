@@ -4,7 +4,8 @@ import "utils/casts/field_to_u64" as field_to_u64;
 import "utils/casts/u64_to_field" as u64_to_field;
 
 const field max = 0-1;
-const field threshold = 84444617494283704242488249387815465313758993351540638279352334559174092390;
+const field threshold = 20888242871839275222246405745257275088548364400416034343698204186575808495617;
+//                      21888242871839275222246405745257275088548364400416034343698204186575808495617
 const u32  fe = 9;
 const u32  ac = 6;
 const field ac_f=6;
@@ -31,11 +32,16 @@ def subtract(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (f
 def divide(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
     field mut a_cleansed = if a_sign==0 {a} else {max-a+1};
     field mut b_cleansed = if b_sign==0 {b} else {max-b+1};
+    // Convert to u64 for easier arithmetic
     u64 a_u64 =field_to_u64(a_cleansed);
     u64 b_u64 = field_to_u64(b_cleansed);
+     // Compute the remainder
     u64 remainder = a_u64%b_u64;
+    // Adjust the numerator to ensure it's divisible by the denominator
     a_cleansed = u64_to_field(a_u64-remainder);
+    // Determine the result
     field mut res = a_cleansed/b_cleansed;
+    // Determine the sign of the result
     field mut sign = if a_sign==b_sign || res==0 {0} else {1};
     res = if sign == 0 {res} else {max+1-res};
     return (res, sign);
@@ -49,7 +55,8 @@ def multiply(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (f
     res = if sign==0 {res} else {max-res+1};
     return (res, sign);
 }
-
+// calculate the derivative of the Mean Squared Error (MSE) loss with respect to the predicted values
+// pr: A field element representing a precision value
 def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field[ac], field[ac]) {
     field[ac] mut result = [0; ac];
     field[ac] mut result_sign = [0; ac];
@@ -66,7 +73,7 @@ def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_s
     }
     return (result, result_sign);
 }
-
+// x is input vector
 def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x, field[ac][fe] mut w_sign, field[ac] mut b_sign, field[fe] mut x_sign, field mut pr) -> (field[ac], field[ac]) {
     field[ac] mut result = b;
     field[ac] mut result_sign=b_sign;
@@ -75,6 +82,7 @@ def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x,
     for u32 j in 0..ac {
         field mut temp = 0;
         field mut temp_sign = 0;
+        //Calculate the dot product of weights (w) and inputs (x)
         for u32 i in 0..fe {
             (field, field) tres = multiply(w[j][i], x[i], w_sign[j][i], x_sign[i]);
             field mut t_i = tres.0;
@@ -83,12 +91,15 @@ def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x,
             temp = tres2.0;
             temp_sign = tres2.1;
         }
+        // Divide the dot product by pr
         (field, field) mut tres3 = divide(temp, pr, temp_sign, 0);
         temp = tres3.0;
         temp_sign = tres3.1;
+        // Store the result of the dot product in wx[j]
         wx[j] = temp;
         wx_sign[j] = temp_sign;
     }
+    // Add the result of the dot product (wx) to bias (b)
     for u32 i in 0..ac {
         (field, field) mut tres4 = add(wx[i], b[i], wx_sign[i], b_sign[i]);
         result[i] = tres4.0;
