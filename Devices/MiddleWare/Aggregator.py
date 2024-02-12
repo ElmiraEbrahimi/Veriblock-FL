@@ -119,3 +119,21 @@ def moving_average_weights(
                 temp_global_weights[i] = res
 
     return temp_global_weights
+
+
+def moving_average_bias(
+    new_bias: dict, participant_count: int, temp_global_bias: dict
+) -> dict:
+    k = participant_count
+    if k > 0:
+        if k == 1:
+            for i in range(len(new_bias)):
+                temp_global_bias[i] = new_bias[i]
+        else:
+            for i in range(len(new_bias)):
+                old_bias_i = temp_global_bias[i]
+                new_bias_i = new_bias[i]
+                res = old_bias_i + (new_bias_i - old_bias_i) / k
+                temp_global_bias[i] = res
+
+    return temp_global_bias
