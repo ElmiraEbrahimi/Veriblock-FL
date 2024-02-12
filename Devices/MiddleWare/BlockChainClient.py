@@ -195,7 +195,20 @@ class BlockChainConnection:
             a, b, c, inputs
         ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
         self.web3Connection.eth.waitForTransactionReceipt(thxHash)
-       
+        # events = self.FLcontractDeployed.events.RunMovingAverage().getLogs()
+        # for event in events:
+        #     if str(event["args"].get("result")) == "100":  # run moving average:
+
+        #         # get new temp_global_weights and temp_global_bias:
+        #         new_temp_global_weights, new_temp_global_bias = moving_average_all(
+        #             new_weights=weights,
+        #             new_bias=bias,
+        #             participant_count=participating_devices,
+        #             temp_global_weights=temp_global_weights,
+        #             temp_global_bias=temp_global_bias,
+        #         )
+        #         # TODO: receive proof from aggregator
+
 
     def __update_without_proof(self, weights, bias, accountNR):
         weights = [[int(x) for x in y] for y in weights]
