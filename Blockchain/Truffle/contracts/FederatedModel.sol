@@ -7,16 +7,6 @@ pragma experimental ABIEncoderV2;
 contract FederatedModel {
     address public administrator;
 
-    //  int256[] private global_weights;
-    //  int256 private global_bias;
-    //    int256 private precision=10000;
-    //   int256 learning_rate;
-    //  uint256 private dimension;
-    //    bool public isTraining=true;
-    //   address[] private participating_devices;
-    //  mapping(address => int256[]) private localWeightsMappings;
-    //    mapping(address => int256) private localBiasMappings;
-
     int256[][] private temp_global_weights;
     int256[] private temp_global_bias;
     int256[][] private global_weights;
@@ -45,6 +35,7 @@ contract FederatedModel {
         learning_rate = learning_rate_;
         administrator = tx.origin;
         outputDimension = od;
+        learning_rate = learning_rate_;
         inputDimension = id;
         batchSize = batchSize_;
         precision = precision_;
@@ -132,7 +123,7 @@ contract FederatedModel {
         return global_bias;
     }
 
-    function time_until_next_update_round() external returns (int256) {
+    function time_until_next_update_round() external view returns (int256) {
         return int(intervalEnd) - int(block.timestamp);
     }
 
@@ -156,11 +147,11 @@ contract FederatedModel {
         }
     }
 
-    function is_Training() external returns (bool) {
+    function is_Training() external view returns (bool) {
         return isTraining;
     }
 
-    function roundUpdateOutstanding() external returns (bool) {
+    function roundUpdateOutstanding() external view returns (bool) {
         if (initialized) {
             address user = tx.origin;
             bool new_user = true;
