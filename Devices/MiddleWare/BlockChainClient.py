@@ -209,6 +209,16 @@ class BlockChainConnection:
         #         )
         #         # TODO: receive proof from aggregator
 
+        #         # TODO : send the new weights and bias to the aggregator
+
+        #         # set new temp_global_weights and temp_global_bias:
+        #         thxHash = self.FLcontractDeployed.functions.setTempGlobal(
+        #             new_temp_global_weights, new_temp_global_bias
+        #         ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
+        #         self.__await_Trainsaction(thxHash)
+        #         print(f"AccountNr = {accountNR}: UPDATE SUCCESSFUL")
+        #         return
+        # print(f"AccountNr = {accountNR}: UPDATE FAILED. Trx: {str(thxHash)}")
 
     def __update_without_proof(self, weights, bias, accountNR):
         weights = [[int(x) for x in y] for y in weights]
