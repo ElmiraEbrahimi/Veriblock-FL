@@ -1,3 +1,4 @@
+
 def moving_average_weights(new_weights: dict, participant_count: int, temp_global_weights: dict) -> dict:
     k = participant_count
     if k > 0:
