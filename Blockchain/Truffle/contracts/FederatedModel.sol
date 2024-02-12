@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./verifier.sol";
@@ -6,6 +5,16 @@ pragma experimental ABIEncoderV2;
 
 contract FederatedModel {
     address public administrator;
+
+    //  int256[] private global_weights;
+    //  int256 private global_bias;
+    //    int256 private precision=10000;
+    //   int256 learning_rate;
+    //  uint256 private dimension;
+    //    bool public isTraining=true;
+    //   address[] private participating_devices;
+    //  mapping(address => int256[]) private localWeightsMappings;
+    //    mapping(address => int256) private localBiasMappings;
 
     int256[][] private temp_global_weights;
     int256[] private temp_global_bias;
@@ -35,7 +44,6 @@ contract FederatedModel {
         learning_rate = learning_rate_;
         administrator = tx.origin;
         outputDimension = od;
-        learning_rate = learning_rate_;
         inputDimension = id;
         batchSize = batchSize_;
         precision = precision_;
@@ -123,7 +131,7 @@ contract FederatedModel {
         return global_bias;
     }
 
-    function time_until_next_update_round() external view returns (int256) {
+    function time_until_next_update_round() external returns (int256) {
         return int(intervalEnd) - int(block.timestamp);
     }
 
@@ -144,14 +152,17 @@ contract FederatedModel {
             intervalEnd = block.timestamp + updateInterval;
             delete participating_devices;
             round_Number = round_Number + 1;
+
+            // delete all the hashes:
+            deleteAllHashValues();
         }
     }
 
-    function is_Training() external view returns (bool) {
+    function is_Training() external returns (bool) {
         return isTraining;
     }
 
-    function roundUpdateOutstanding() external view returns (bool) {
+    function roundUpdateOutstanding() external returns (bool) {
         if (initialized) {
             address user = tx.origin;
             bool new_user = true;
@@ -168,8 +179,6 @@ contract FederatedModel {
 
     //
     //
-    event RunMovingAverage(uint256 result);
-
     function getTempGlobalAndParticipants() public view returns(int256[][] memory, int256[] memory, uint) {
         return (temp_global_weights, temp_global_bias, participating_devices.length);
     }
@@ -179,13 +188,39 @@ contract FederatedModel {
         temp_global_bias = newBias; 
     }
 
+    // hash mapping:
+    mapping(address => string) public hashDynamicMapping;
+    address[] public hashKeys;
+
+    function setHashValue(address sender, string memory _value) internal {
+        // if the hash value is already set, ignore it:
+        if (bytes(hashDynamicMapping[sender]).length != 0) {
+            return;
+        }
+        require(bytes(_value).length == 64, "Hash string length must be 64 characters");
+        hashDynamicMapping[sender] = _value;
+        hashKeys.push(sender);
+    }
+
+    function getHashValue(address sender) public view returns (string memory) {
+        return hashDynamicMapping[sender];
+    }
+
+    function deleteAllHashValues() internal {
+        for (uint i = 0; i < hashKeys.length; i++) {
+            address key = hashKeys[i];
+            hashDynamicMapping[key] = "";
+        }
+        delete hashKeys;
+    }
+
+
     function update_with_proof(
-        int256[][] calldata local_weights,
-        int256[] calldata local_bias,
+        string memory wb_hash,
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[183] calldata input
+        uint[183] calldata input  // TODO: change inout size after hashing
     ) external TrainingMode {
         require(this.checkZKP(a, b, c, input));
         bool newUser = true;
@@ -193,9 +228,7 @@ contract FederatedModel {
         address user = tx.origin;
         if (this.participantsCount() == 0) {
             participating_devices.push(user);
-            // this.movingAverageWeights(local_weights); // *
-            // this.movingAverageBias(local_bias); // *
-            emit RunMovingAverage(100);
+            setHashValue(user, wb_hash);
         } else {
             for (uint256 i = 0; i < this.participantsCount(); i++) {
                 if (user == participating_devices[i]) {
@@ -204,25 +237,20 @@ contract FederatedModel {
             }
             if (newUser) {
                 participating_devices.push(user);
-                // this.movingAverageWeights(local_weights); // *
-                // this.movingAverageBias(local_bias); // *
-                emit RunMovingAverage(100);
+                setHashValue(user, wb_hash);
             }
         }
     }
 
     function update_without_proof(
-        int256[][] calldata local_weights,
-        int256[] calldata local_bias
+        string memory wb_hash
     ) external TrainingMode {
         bool newUser = true;
         bool firstUser = true;
         address user = tx.origin;
         if (this.participantsCount() == 0) {
             participating_devices.push(user);
-            // this.movingAverageWeights(local_weights);
-            // this.movingAverageBias(local_bias);
-            emit RunMovingAverage(100);
+            setHashValue(user, wb_hash);
         } else {
             for (uint256 i = 0; i < this.participantsCount(); i++) {
                 if (user == participating_devices[i]) {
@@ -231,9 +259,7 @@ contract FederatedModel {
             }
             if (newUser) {
                 participating_devices.push(user);
-                // this.movingAverageWeights(local_weights);
-                // this.movingAverageBias(local_bias);
-                emit RunMovingAverage(100);
+                setHashValue(user, wb_hash);
             }
         }
     }
