@@ -4,8 +4,9 @@ import "utils/casts/field_to_u64" as field_to_u64;
 import "utils/casts/u64_to_field" as u64_to_field;
 
 const field max = 0-1;
-const field threshold = 20888242871839275222246405745257275088548364400416034343698204186575808495617;
-//                      21888242871839275222246405745257275088548364400416034343698204186575808495617
+const field threshold = 84444617494283704242488249387815465313758993351540638279352334559174092390;
+//20888242871839275222246405745257275088548364400416034343698204186575808495617;
+//21888242871839275222246405745257275088548364400416034343698204186575808495617
 const u32  fe = 9;
 const u32  ac = 6;
 const field ac_f=6;
@@ -73,12 +74,13 @@ def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_s
     }
     return (result, result_sign);
 }
-// x is input vector
+// Forward Propagation Loop/Normalization
 def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x, field[ac][fe] mut w_sign, field[ac] mut b_sign, field[fe] mut x_sign, field mut pr) -> (field[ac], field[ac]) {
     field[ac] mut result = b;
     field[ac] mut result_sign=b_sign;
     field[ac] mut wx=b;
     field[ac] mut wx_sign=b;
+    // Iterate through each neuron j in the layer
     for u32 j in 0..ac {
         field mut temp = 0;
         field mut temp_sign = 0;
@@ -91,7 +93,7 @@ def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x,
             temp = tres2.0;
             temp_sign = tres2.1;
         }
-        // Divide the dot product by pr
+        // Divide the dot product by by the precision (pr) for normalzation
         (field, field) mut tres3 = divide(temp, pr, temp_sign, 0);
         temp = tres3.0;
         temp_sign = tres3.1;
@@ -99,7 +101,7 @@ def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x,
         wx[j] = temp;
         wx_sign[j] = temp_sign;
     }
-    // Add the result of the dot product (wx) to bias (b)
+    // Add the dot product result (wx[i]) to the bias (b[i]) for each neuron i.
     for u32 i in 0..ac {
         (field, field) mut tres4 = add(wx[i], b[i], wx_sign[i], b_sign[i]);
         result[i] = tres4.0;
@@ -109,6 +111,7 @@ def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x,
 }
 
 def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] mut x, field[ac] mut output_error, field mut learning_rate, field mut pr, field[ac][fe] mut w_sign,field[ac] mut b_sign,field[fe] mut x_sign,field[ac] mut output_error_sign) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
+    // Update Biases (b)
     for u32 i in 0..ac {
         (field, field) tres = divide(output_error[i], learning_rate, output_error_sign[i], 0);
         field temp = tres.0;
@@ -117,6 +120,7 @@ def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] m
         b[i] = tres2.0;
         b_sign[i] = tres2.1;
     }
+    // Update Weights (w). a nested loop over input features j and output neurons i.
     for u32 j in 0..fe {
         for u32 i in 0..ac {
             (field, field) tres = multiply(output_error[i], x[j], output_error_sign[i], x_sign[j]);
@@ -138,24 +142,32 @@ def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] m
 
 //,field[bs][fe] x_train, field[bs][fe] x_train_sign ,field[bs] y_train,field learning_rate,field precision
 def main(field[ac][fe] mut w, field[ac][fe] mut w_sign, field[ac] mut b, field[ac] mut b_sign, private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,field mut learning_rate,field mut pr,field[ac][fe] mut w_new,field[ac] mut b_new) -> bool {
+    // output values from the forward propagation
     field[ac] mut output_layer=[0;ac];
     field[ac] mut out_sign=[0;ac];
+    // error values calculated during training
     field[ac] mut error = [0;ac];
     field[ac] mut error_sign = [0;ac];
+    //intermediate values during the backward propagation
     field[ac] mut backward_layer = [0;ac];
+    // store intermediate values during the forward propagation
     field[fe] mut out =[0;fe];
     field[ac] mut backward_layer_sign = [0;ac];
+    // store the true labels for the current batch during training
     field[ac] mut y_true = [0;ac];
+    // loop iterating over each batch in the training set
     for u32 batch_idx in 0..bs {
+        //Extract the input sample (x_train[batch_idx]) for the current batch
         field[fe] mut sample = x_train[batch_idx];
         field[fe] mut sample_sign = x_train_sign[batch_idx];
+        // -1: To make the label suitable for indexing arrays or lists in a zero-indexed language
         field mut idx1 = y_train[batch_idx] - 1;
         for u32 i in 0..ac {
             field mut idx2=u32_to_field(i);
+            //If they are equal, it means the current class is the correct class for the given batch.
             y_true[i] = if idx1==idx2 {pr} else {0};
         }
-
-        // calculate the output layer:
+ // calculate the output layer:
         (field[ac], field[ac]) tres = forward_propagation_layer(w, b, sample, w_sign, b_sign, sample_sign, pr);
         output_layer = tres.0;
         out_sign = tres.1;
