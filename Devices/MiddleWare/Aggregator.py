@@ -137,3 +137,22 @@ def moving_average_bias(
                 temp_global_bias[i] = res
 
     return temp_global_bias
+
+
+def moving_average_all(
+    new_weights: dict,
+    new_bias: dict,
+    participant_count: int,
+    temp_global_weights: dict,
+    temp_global_bias: dict,
+) -> dict:
+    # weights:
+    temp_global_weights = moving_average_weights(
+        new_weights, participant_count, temp_global_weights
+    )
+    # bias:
+    temp_global_bias = moving_average_bias(
+        new_bias, participant_count, temp_global_bias
+    )
+    # return new temp_global_weights and temp_global_bias
+    return temp_global_weights, temp_global_bias
