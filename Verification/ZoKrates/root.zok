@@ -56,6 +56,21 @@ def multiply(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (f
     res = if sign==0 {res} else {max-res+1};
     return (res, sign);
 }
+
+def power(field mut base, field mut exponent, field mut base_sign, field mut exponent_sign) -> (field, field) {
+    // Initialize the result and result sign
+    field mut result = 1;
+    field mut result_sign = 0;
+    
+    // Loop to multiply base by itself exponent times
+    for u32 i in 0..exponent {
+        (result, result_sign) = multiply(result, base, result_sign, base_sign);
+    }
+    
+    // Return the result and its sign
+    return (result, result_sign);
+}
+
 // calculate the derivative of the Mean Squared Error (MSE) loss with respect to the predicted values
 // pr: A field element representing a precision value
 def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field[ac], field[ac]) {
