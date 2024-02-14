@@ -89,6 +89,29 @@ def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_s
     }
     return (result, result_sign);
 }
+def mse(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field, field) {
+   field mut sum = 0;
+    field mut sum_sign = 0;
+    for u32 i in 0..ac {
+        // Calculate squared difference for each pair
+        (field, field) mut diff = subtract(y_pred[i], y_true[i], y_pred_sign[i], 0);
+        field mut squared_diff = multiply(diff.0, diff.0, diff.1, diff.1).0;
+        
+        // Adjust for precision: precision^2
+        field mut precision_squared = multiply(pr, pr, 0, 0).0;
+        field mut adjusted_diff = divide(squared_diff, precision_squared, 0, 0).0;
+        
+        // Sum the adjusted squared differences
+        (sum, sum_sign) = add(sum, adjusted_diff, sum_sign, 0);
+    }
+    
+    // Calculate mean by dividing the sum by the count (ac), considering precision
+    field mut mean = divide(sum, ac_f, sum_sign, 0).0;
+    
+    // The function returns the mean and its sign
+    return (mean, 0); // Assuming mean sign is always positive for MSE
+    
+}
 // Forward Propagation Loop/Normalization
 def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x, field[ac][fe] mut w_sign, field[ac] mut b_sign, field[fe] mut x_sign, field mut pr) -> (field[ac], field[ac]) {
     field[ac] mut result = b;
