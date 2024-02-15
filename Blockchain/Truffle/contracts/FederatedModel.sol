@@ -179,6 +179,16 @@ contract FederatedModel {
 
     //
     //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
     function getTempGlobalAndParticipants() public view returns(int256[][] memory, int256[] memory, uint) {
         return (temp_global_weights, temp_global_bias, participating_devices.length);
     }
@@ -188,7 +198,7 @@ contract FederatedModel {
         temp_global_bias = newBias; 
     }
 
-    // hash mapping:
+    // region hash mapping
     mapping(address => string) public hashDynamicMapping;
     address[] public hashKeys;
 
@@ -197,7 +207,6 @@ contract FederatedModel {
         if (bytes(hashDynamicMapping[sender]).length != 0) {
             return;
         }
-        require(bytes(_value).length == 64, "Hash string length must be 64 characters");
         hashDynamicMapping[sender] = _value;
         hashKeys.push(sender);
     }
@@ -213,9 +222,9 @@ contract FederatedModel {
         }
         delete hashKeys;
     }
+    // endregion
 
-
-    function update_with_proof(
+    function send_wb_hash(
         string memory wb_hash,
         uint[2] calldata a,
         uint[2][2] calldata b,
