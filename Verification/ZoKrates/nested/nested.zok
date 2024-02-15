@@ -3,6 +3,64 @@ from "snark/gm17" import main as verify, Proof, VerificationKey;
 const u32 SIGNATURE_PROOF_INPUTS = 8;
 const u32 SIGNATURE_VERIFICATION_KEY_SIZE = SIGNATURE_PROOF_INPUTS + 1;
 
+import "utils/casts/field_to_u32" as field_to_u32;
+import "utils/casts/u32_to_field" as u32_to_field;
+import "utils/casts/field_to_u64" as field_to_u64;
+import "utils/casts/u64_to_field" as u64_to_field;
+
+const field max = 0-1;
+const field threshold = 20888242871839275222246405745257275088548364400416034343698204186575808495617;
+const u32  fe = 9;
+const u32  ac = 6;
+const field ac_f=6;
+const u32  bs = 10;
+
+def add(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
+    field mut a_cleansed = if a_sign==0 { a } else { max-a+1};
+    field mut b_cleansed = if b_sign==0  {b} else {max-b+1};
+    field mut c = if a_sign == b_sign && a_sign == 1 {(max+1-a_cleansed-b_cleansed)} else {a+b};
+    field mut c_sign = if c > threshold {1} else {0} ;
+    return (c, c_sign);
+}
+
+
+def subtract(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
+    field mut a_cleansed = if a_sign==0 {a} else {max-a+1} ;
+    field mut b_cleansed = if b_sign==0 {b} else {max-b+1} ;
+    field mut c = if a_sign != b_sign && a_sign==0 {a_cleansed+b_cleansed} else {a-b} ;
+    field mut d = if c > threshold {1} else {0} ;
+    return (c, d);
+}
+
+
+def divide(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
+    field mut a_cleansed = if a_sign==0 {a} else {max-a+1};
+    field mut b_cleansed = if b_sign==0 {b} else {max-b+1};
+    // Convert to u64 for easier arithmetic
+    u64 a_u64 =field_to_u64(a_cleansed);
+    u64 b_u64 = field_to_u64(b_cleansed);
+     // Compute the remainder
+    u64 remainder = a_u64%b_u64;
+    // Adjust the numerator to ensure it's divisible by the denominator
+    a_cleansed = u64_to_field(a_u64-remainder);
+    // Determine the result
+    field mut res = a_cleansed/b_cleansed;
+    // Determine the sign of the result
+    field mut sign = if a_sign==b_sign || res==0 {0} else {1};
+    res = if sign == 0 {res} else {max+1-res};
+    return (res, sign);
+}
+
+def multiply(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
+    field mut a_cleansed = if a_sign==0 {a} else {max-a+1};
+    field mut b_cleansed = if b_sign==0 {b} else {max-b+1};
+    field mut res = a_cleansed*b_cleansed;
+    field mut sign = if a_sign==b_sign || res==0 {0} else {1};
+    res = if sign==0 {res} else {max-res+1};
+    return (res, sign);
+}
+// To do complete this part
 def main(Proof<SIGNATURE_PROOF_INPUTS> signatureProof, VerificationKey<SIGNATURE_VERIFICATION_KEY_SIZE> signatureKey) {
     assert(verify(signatureProof, signatureKey));
+    
 }
