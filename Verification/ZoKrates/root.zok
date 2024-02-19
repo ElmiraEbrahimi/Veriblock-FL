@@ -112,6 +112,34 @@ def mse(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, f
     return (mean, 0); // Assuming mean sign is always positive for MSE
     
 }
+def mimc_cipher(field mut input, field[64] mut round_constants, field mut k) -> field{
+  field num_round_constants = 64;
+  field mut a = 0;
+  
+  for u32 i in 0..64 {
+    a = input + round_constants[i] + k;
+    input = a ** 7;
+  }
+   return (input + k);
+}
+
+def mimc_hash(field[ac][fe] mut w, field[ac] mut b, field[64] mut round_constants) -> field {
+    field mut k = 0;
+
+    // Iterate over the activations/layers
+    for u32 i in 0..ac {
+        // Iterate over the features/weights per activation
+        for u32 j in 0..fe {
+            k = mimc_cipher(w[i][j], round_constants, k);
+        }
+        // Process the bias for each activation/layer
+        k = mimc_cipher(b[i], round_constants, k);
+    }
+
+    return k;
+}
+
+
 // Forward Propagation Loop/Normalization
 def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x, field[ac][fe] mut w_sign, field[ac] mut b_sign, field[fe] mut x_sign, field mut pr) -> (field[ac], field[ac]) {
     field[ac] mut result = b;
