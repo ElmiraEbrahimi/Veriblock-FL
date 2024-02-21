@@ -88,6 +88,7 @@ def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_s
     }
     return (result, result_sign);
 }
+
 def mse(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field, field) {
    field mut sum = 0;
     field mut sum_sign = 0;
@@ -206,7 +207,25 @@ def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] m
 }
 
 //,field[bs][fe] x_train, field[bs][fe] x_train_sign ,field[bs] y_train,field learning_rate,field precision
-def main(field[ac][fe] mut w, field[ac][fe] mut w_sign, field[ac] mut b, field[ac] mut b_sign, private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,field mut learning_rate,field mut pr,field[ac][fe] mut w_new,field[ac] mut b_new) -> bool {
+def main(field private [ac][fe] mut w, private field[ac][fe] mut w_sign, private field[ac] mut b, private field[ac] mut b_sign, private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,field mut learning_rate,field mut pr,field[ac][fe] mut w_new,field[ac] mut b_new, public field mut digest) -> bool {
+    // MIMC hash constant 
+    field[64] round_constants = [
+        42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
+        10000042, 19487209, 35831850, 62748495, 105413546, 170859333,
+        268435498, 410338651, 612220074, 893871697, 1280000042, 1801088567,
+        2494357930, 3404825421, 4586471466, 6103515587, 8031810218, 10460353177,
+        13492928554, 17249876351, 21870000042, 27512614133, 34359738410,
+        42618442955, 52523350186, 64339296833, 78364164138, 94931877159,
+        114415582634, 137231006717, 163840000042, 194754273907, 230539333290,
+        271818611081, 319277809706, 373669453167, 435817657258, 506623120485,
+        587068342314, 678223072891, 781250000042, 897410677873, 1028071702570,
+        1174711139799, 1338925210026, 1522435234413, 1727094849578,
+        1954897493219, 2207984167594, 2488651484857, 2799360000042,
+        3142742835999, 3521614606250, 3938980639125
+    ];
+    field mut result = if mimc_hash(w, b, round_constants) == digest {0} else {1};
+    assert(result == 0);
+    
     // output values from the forward propagation
     field[ac] mut output_layer=[0;ac];
     field[ac] mut out_sign=[0;ac];
