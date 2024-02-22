@@ -1,6 +1,9 @@
 from typing import Optional
 
-import random
+from Devices.MiddleWare.aggregator.hash import mimc_hash
+
+
+# region device (node-manager)
 
 
 class Device:
@@ -9,12 +12,13 @@ class Device:
         address: str,
         weights: Optional[list[list[int]]],
         bias: Optional[list[int]],
+        aggregator: Optional[object],
     ):
         self.address = address
         self.weights = weights
         self.bias = bias
-        self.wb_hash = None
-        self._hash_approved: bool = False
+        self.wb_hash = self.generate_wb_hash(w=self.weights, b=self.bias)
+        self.aggregator = aggregator
 
     def __eq__(self, __value: object) -> bool:
         return self.address == __value.address
@@ -22,15 +26,22 @@ class Device:
     def __hash__(self) -> int:
         return hash(self.address)
 
-    def generate_and_store_wb_hash(self):
-        self.wb_hash = None
+    def generate_wb_hash(self, w, b):
+        hash = mimc_hash(w=w, b=b)
+        return hash
 
-    @property
-    def hash_approved(self) -> bool:
-        return self._hash_approved
+    def send_wb_to_aggregator(self):
+        self.aggregator.set_device_wb(
+            device_id=self.address, w=self.weights, b=self.bias
+        )
 
-    def set_hash_approved(self, value: bool):
-        self._hash_approved = value
+    def send_wb_hash_to_smart_contract(self):
+        # cal
+
+
+# endregion
+
+# region off-chain aggregator:
 
 
 class OffChainAggregator:
@@ -38,65 +49,81 @@ class OffChainAggregator:
     def __init__(self, blockchain_account: str):
         self.blockchain_account = blockchain_account
         self.round_number: int = 0
-        self.devices: dict[Device] = {}
-        self.calculated_global_weights: list[list[int]] = [[]]
-        self.calculated_global_bias: list[int] = []
-        self.generated_proof = None
+        # address: [wb_hash, w, b]
+        self.stored_device_data: dict[str, list[str, list[list[int]], list[int]]] = {}
+        self.selected_device_data: dict[str, list[list[int], list[int]]] = {}
+        self.new_global_weights: list[list[int]] = []
+        self.new_global_bias: list[int] = []
+        self.new_generated_proof = ""
 
     # region smart contract functions
 
     def fetch_sc_round_number(self):
         pass
 
-    def fetch_sc_device_wb_hash(self, device: Device) -> str:
+    def is_wb_hash_in_sc(self, wb_hash: str) -> bool:
         pass
 
-    def set_sc_global_params(self):
+    def set_new_wb_in_sc(self):
         pass
 
     # endregion
 
-    def store_device_wb(self, new_device: Device):
-        generated_hash = new_device.generate_wb_hash()
-        fetched_hash = self.fetch_sc_device_wb_hash(new_device)
-        if fetched_hash == generated_hash:  # if hashes match:
-            new_device.set_hash_approved(value=True)
-            self.devices[new_device] = new_device
+    def store_device_wb(
+        self, device_id: str, w: list[list[list[int]]], b: list[int]
+    ) -> bool:
+        wb_hash = mimc_hash(w=w, b=b)
+        if not self.is_wb_hash_in_sc(wb_hash):
+            # hash not in the smart contract:
+            return False
+        # hash is in smart contract:
+        self.stored_device_data[device_id] = [wb_hash, w, b]
+        return True
 
-    def run_client_selection(self) -> list[Device]:
-        selected_devices = []
-        for device in self.devices:
-            if device.hash_approved:
-                # random selection algorithm:
-                result = random.choice([True, False])
-                if result:
-                    selected_devices.append(device)
+    def select_devices(self) -> dict[str, list[str, list[list[int]], list[int]]]:
+        # TODO: select devices based on some criteria
+        selected_devices = self.stored_device_data
         return selected_devices
 
     def calculate_moving_average(
-        self, selected_devices: list[Device]
-    ) -> tuple[list[list[int]], list[int]]:
+        self, selected_devices: dict[str, list[list[int], list[int]]]
+    ) -> list[list[list[int]], list[int]]:
         # TODO: algorithm to calculate ma for a list of devices and return w,b
         pass
 
-    def generate_proof(self):  # for the calculated global weights and bias
-        # TODO: generate
+    def generate_proof(self) -> str:  # for the calculated global weights and bias
+        # TODO: call zokrates to generate aggregator proof
         pass
 
+    def clear_round(self):
+        self.stored_device_data = {}
+        self.selected_device_data = {}
+        self.new_global_weights = [[]]
+        self.new_global_bias = []
+        self.new_generated_proof = ""
+
     def start_round(self):
+        # clear the parameters for the new round:
+        self.clear_round()
         # fetch the round number from the smart contract:
         self.round_number = self.fetch_sc_round_number()
-        # clear the parameters for the new round:
-        self.devices = {}
-        self.calculated_global_weights = []
-        self.calculated_global_bias = []
-        self.generated_proof = None
 
     def finish_round(self):
+        # select devices:
+        self.selected_device_data = self.select_devices()
+        # calculate moving average:
+        self.new_global_weights, self.new_global_bias = self.calculate_moving_average(
+            self.selected_device_data
+        )
         # generate the proof:
-        self.generate_proof()
-        # save the calculated global weights and bias to the smart contract:
+        self.new_generated_proof = self.generate_proof()
+        # send the calculated global weights and bias to the smart contract:
         self.set_sc_global_params()
+
+
+# endregion
+
+# moving average:
 
 
 def moving_average_weights(
