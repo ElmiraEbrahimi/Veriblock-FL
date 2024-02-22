@@ -10,6 +10,7 @@ from sklearn.metrics import classification_report, accuracy_score
 import pandas as pd
 
 from Analytics.Analytics import Analytics
+from Devices.MiddleWare.aggregator.hash import mimc_hash
 from MessageBroker.Consumer import Consumer
 from MiddleWare.NeuralNet import Network, FCLayer, mse_prime, mse
 
@@ -272,6 +273,7 @@ class MiddleWare:
         weights_new, _ = convert_matrix(w_new)
         bias_new, _ = convert_matrix(b_new)
         x, x_sign = convert_matrix(x_train)
+        digest = mimc_hash(global_weights, global_bias)
         args = [
             global_weights,
             global_weights_sign,
@@ -284,6 +286,7 @@ class MiddleWare:
             self.precision,
             weights_new,
             bias_new,
+            digest,
         ]
         out_path = verification_base + "out"
         abi_path = verification_base + "abi.json"
