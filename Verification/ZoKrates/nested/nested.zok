@@ -9,8 +9,9 @@ const u32  fe = 9;
 const u32  ac = 6;
 const field ac_f=6;
 const u32  bs = 10;
-// k also needs to be defined # of participant in the client selection ex. 5
-//const u32  k = 5;
+// k also needs to be defined # of participant in the client selection ex. 5 also all client 
+const u32  k = 5;
+const u32  c = 9;
 
 // // Abstract common preprocessing into a separate function
 // def cleanse_and_sign(field a, field a_sign) -> field {
@@ -110,15 +111,30 @@ def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
      return (new_global_w, new_global_b, new_global_w_sign, new_global_b_sign);
 }
 
+// Function to check if all ag_hash values are in sc_hash
+def hash_check(field[c] sc_hash, field[k] ag_hash) -> field {
+    field mut result = 1; // Assume all hashes match initially
+    for u32 i in 0..k {
+        field mut found = 0;
+        for u32 j in 0..c {
+            // Update 'found' if a match is found, but don't revert if a match was found earlier
+            found = if ag_hash[i] == sc_hash[j] { 1 } else { found };
+        }
+        // If 'found' is still 0 for any i, it means a match wasn't found for ag_hash[i]
+        result = if found == 0 { 0 } else { result };
+    }
+    return result; // Return 1 if all matches found, 0 otherwise
+}
+
 
 
 // Main function with correctness check
 def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_sign, 
     private field[ac] mut local_b, private field[ac] mut local_b_sign,
-    public field[ac][fe] mut global_w, public field[ac][fe] mut global_w_sign,
-    public field[ac] mut global_b, public field[ac] global_b_sign,
-    public field k, 
-    public field[ac][fe] expected_global_w, public field[ac] expected_global_b) -> bool {
+    field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
+    field[ac] mut global_b, field[ac] global_b_sign,
+    field k, field[c] sc_hash, field[k] ag_hash,
+    field[ac][fe] expected_global_w, field[ac] expected_global_b) -> bool {
     
     field[ac][fe] mut computed_global_w = [[0; fe]; ac];
     field[ac][fe] mut computed_global_w_sign = [[0; fe]; ac];
@@ -126,6 +142,10 @@ def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_si
     field[ac] mut computed_global_b_sign = [0; ac];
     bool mut is_correct = true;
     
+    // Check if all ag_hash values are contained in sc_hash
+    field hashes_match = hash_check(sc_hash, ag_hash);
+    assert (hashes_match == 1);
+
     // Compute updated global weights and biases
     (field[ac][fe], field[ac], field[ac][fe], field[ac]) tres = update_global(
         global_w, global_w_sign, global_b, global_b_sign,
