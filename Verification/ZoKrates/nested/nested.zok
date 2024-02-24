@@ -9,6 +9,17 @@ const u32  fe = 9;
 const u32  ac = 6;
 const field ac_f=6;
 const u32  bs = 10;
+// k also needs to be defined # of participant in the client selection ex. 5
+//const u32  k = 5;
+
+// // Abstract common preprocessing into a separate function
+// def cleanse_and_sign(field a, field a_sign) -> field {
+//     field cleansed = if a_sign == 0 { a } else { max - a + 1 };
+//     field sign = if cleansed > threshold { 1 } else { 0 };
+//     return cleansed;
+// }
+//    field a_cleansed = cleanse_and_sign(a, a_sign);
+//    field b_cleansed = cleanse_and_sign(b, b_sign);
 
 def add(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
     field mut a_cleansed = if a_sign==0 { a } else { max-a+1};
@@ -27,18 +38,14 @@ def subtract(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (f
     return (c, d);
 }
 
-
 def divide(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
     field mut a_cleansed = if a_sign==0 {a} else {max-a+1};
     field mut b_cleansed = if b_sign==0 {b} else {max-b+1};
-    // Convert to u64 for easier arithmetic
     u64 a_u64 =field_to_u64(a_cleansed);
     u64 b_u64 = field_to_u64(b_cleansed);
-     // Compute the remainder
     u64 remainder = a_u64%b_u64;
     // Adjust the numerator to ensure it's divisible by the denominator
     a_cleansed = u64_to_field(a_u64-remainder);
-    // Determine the result
     field mut res = a_cleansed/b_cleansed;
     // Determine the sign of the result
     field mut sign = if a_sign==b_sign || res==0 {0} else {1};
@@ -46,57 +53,89 @@ def divide(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (fie
     return (res, sign);
 }
 
-def multiply(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
-    field mut a_cleansed = if a_sign==0 {a} else {max-a+1};
-    field mut b_cleansed = if b_sign==0 {b} else {max-b+1};
-    field mut res = a_cleansed*b_cleansed;
-    field mut sign = if a_sign==b_sign || res==0 {0} else {1};
-    res = if sign==0 {res} else {max-res+1};
-    return (res, sign);
-}
-
-// Arithmetic operations: add, subtract, multiply, divide
-// Assume these are defined as per your initial input
-
 // Function to update global weights and biases
-def update_global(field[ac][fe] global_w, field[ac][fe] local_w, field[ac] global_b, field[ac] local_b, field k) -> (field[ac][fe], field[ac]) {
-    field[ac][fe] new_global_w;
-    field[ac] new_global_b;
+def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
+    field[ac] mut global_b, field[ac] mut global_b_sign,
+    field[ac][fe] local_w, field[ac][fe] mut local_w_sign,
+    field[ac] local_b, field[ac] mut local_b_sign,
+    field k) -> (field[ac][fe] mut, field[ac] mut, field[ac][fe] mut, field[ac] mut) {
+    
+    field[ac][fe] mut new_global_w;
+    field[ac] mut new_global_b;
+    field[ac][fe] mut new_global_w_sign;
+    field[ac] mut new_global_b_sign;
     
     // Update global weights using the provided logic
     for u32 i in 0..ac {
+
+        field mut temp = 0;
+        field mut temp_sign = 0;
+
+        //is the usage of tem correct?
         for u32 j in 0..fe {
             // Compute the difference local_w[i][j] - global_w[i][j]
-            (field diff, field diff_sign) = subtract(local_w[i][j], global_w[i][j], 0, 0);
+            // couldnt use without redundant variable tem? (field difference, field diff_sign)
+            (field, field) tres = subtract(local_w[i][j], global_w[i][j], local_w_sign[i][j], global_w_sign[i][j]);
+            temp = tres.0;
+            temp_sign = tres.1;
             // Divide the difference by k
-            (field update, field update_sign) = divide(diff, k, diff_sign, 0);
+            (field, field) tres2 = divide(temp, k, temp_sign, 0);
+            temp = tres2.0;
+            temp_sign = tres2.1;
             // Add the update to the global_w[i][j]
-            (new_global_w[i][j], ) = add(global_w[i][j], update, 0, update_sign);
+            (field, field) tres3 = add(global_w[i][j], temp, global_w_sign[i][j], temp_sign);
+            new_global_w[i][j] = tres3.0;
+            new_global_w_sign[i][j] = tres3.1;
         }
     }
-    
+
     // Update global biases using the provided logic
     for u32 i in 0..ac {
+         field mut temp = 0;
+        field mut temp_sign = 0;
         // Compute the difference local_b[i] - global_b[i]
-        (field diff, field diff_sign) = subtract(local_b[i], global_b[i], 0, 0);
+        (field, field) tres = subtract(local_b[i], global_b[i], local_b_sign[i], global_b_sign[i]);
+        temp = tres.0;
+        temp_sign = tres.1;
         // Divide the difference by k
-        (field update, field update_sign) = divide(diff, k, diff_sign, 0);
+        (field, field) tres2 = divide(temp, k, temp_sign, 0);
+        temp = tres2.0;
+        temp_sign = tres2.1;
         // Add the update to the global_b[i]
-        (new_global_b[i], ) = add(global_b[i], update, 0, update_sign);
+        (field, field) tres3 = add(global_b[i], temp, global_b_sign[i], temp_sign);
+        new_global_b[i] = tres3.0;
+        new_global_b_sign[i] = tres3.1;
     }
     
-    return (new_global_w, new_global_b);
+     return (new_global_w, new_global_b, new_global_w_sign, new_global_b_sign);
 }
 
+
+
 // Main function with correctness check
-def main(private field[ac][fe] local_w, private field[ac] local_b, public field[ac][fe] global_w, public field[ac] global_b, public field k, public field[ac][fe] expected_global_w, public field[ac] expected_global_b) -> (bool) {
+def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_sign, 
+    private field[ac] mut local_b, private field[ac] mut local_b_sign,
+    public field[ac][fe] mut global_w, public mut field[ac][fe] global_w_sign,
+    public field[ac] mut global_b, public field[ac] global_b_sign,
+    public field k, 
+    public field[ac][fe] expected_global_w, public field[ac] expected_global_b) -> (bool) {
     field[ac][fe] computed_global_w;
     field[ac] computed_global_b;
+    field[ac][fe] computed_global_w_sign;
+    field[ac] computed_global_b_sign;
     bool is_correct = true;
     
     // Compute updated global weights and biases
-    (computed_global_w, computed_global_b) = update_global(global_w, local_w, global_b, local_b, k);
-    
+    (field[ac][fe], field[ac], field[ac][fe], field[ac]) tres = update_global(
+        global_w, global_w_sign, global_b, global_b_sign,
+        local_w, local_w_sign, local_b, local_b_sign,
+        k
+    );
+    computed_global_w = tres.0;
+    computed_global_b = tres.1;
+    computed_global_w_sign = tres.2;
+    computed_global_b_sign = tres.3;
+
     // Check if computed values match the expected values
     for u32 i in 0..ac {
         for u32 j in 0..fe {
