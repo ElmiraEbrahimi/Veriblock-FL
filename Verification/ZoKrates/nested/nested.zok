@@ -58,12 +58,12 @@ def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
     field[ac] mut global_b, field[ac] mut global_b_sign,
     field[ac][fe] local_w, field[ac][fe] mut local_w_sign,
     field[ac] local_b, field[ac] mut local_b_sign,
-    field k) -> (field[ac][fe] mut, field[ac] mut, field[ac][fe] mut, field[ac] mut) {
+    field k) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
     
-    field[ac][fe] mut new_global_w;
-    field[ac] mut new_global_b;
-    field[ac][fe] mut new_global_w_sign;
-    field[ac] mut new_global_b_sign;
+    field[ac][fe] mut new_global_w = [[0; fe]; ac];
+    field[ac] mut new_global_b = [0; ac] ;
+    field[ac][fe] mut new_global_w_sign = [[0; fe]; ac];
+    field[ac] mut new_global_b_sign = [0; ac];
     
     // Update global weights using the provided logic
     for u32 i in 0..ac {
@@ -115,15 +115,16 @@ def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
 // Main function with correctness check
 def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_sign, 
     private field[ac] mut local_b, private field[ac] mut local_b_sign,
-    public field[ac][fe] mut global_w, public mut field[ac][fe] global_w_sign,
+    public field[ac][fe] mut global_w, public field[ac][fe] mut global_w_sign,
     public field[ac] mut global_b, public field[ac] global_b_sign,
     public field k, 
-    public field[ac][fe] expected_global_w, public field[ac] expected_global_b) -> (bool) {
-    field[ac][fe] computed_global_w;
-    field[ac] computed_global_b;
-    field[ac][fe] computed_global_w_sign;
-    field[ac] computed_global_b_sign;
-    bool is_correct = true;
+    public field[ac][fe] expected_global_w, public field[ac] expected_global_b) -> bool {
+    
+    field[ac][fe] mut computed_global_w = [[0; fe]; ac];
+    field[ac][fe] mut computed_global_w_sign = [[0; fe]; ac];
+    field[ac] mut computed_global_b = [0; ac];
+    field[ac] mut computed_global_b_sign = [0; ac];
+    bool mut is_correct = true;
     
     // Compute updated global weights and biases
     (field[ac][fe], field[ac], field[ac][fe], field[ac]) tres = update_global(
@@ -139,13 +140,13 @@ def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_si
     // Check if computed values match the expected values
     for u32 i in 0..ac {
         for u32 j in 0..fe {
-            if computed_global_w[i][j] != expected_global_w[i][j] {
-                is_correct = false;
-            }
+            
+            is_correct = if computed_global_w[i][j] != expected_global_w[i][j] {false} else {true};
+            
         }
-        if computed_global_b[i] != expected_global_b[i] {
-            is_correct = false;
-        }
+         
+        is_correct = if computed_global_b[i] != expected_global_b[i] {false} else {true};
+    
     }
     
     return is_correct;
