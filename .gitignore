@@ -651,8 +651,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/django,python,venv,virtualenv,osx,linux,windows,jetbrains,visualstudiocode,typings,test,pydev,pycharm,database
-
-
 # Project exclude paths
 Devices/MiddleWare/node_modules/
 Devices/Edge_Device/data/Device_*
@@ -671,3 +669,4 @@ Verification/root
 Verification/root.r1cs
 Verification/out.r1cs
 Verification/out.wtns
+Verification/out
