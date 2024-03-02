@@ -58,13 +58,13 @@ def divide(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (fie
 def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
     field[ac] mut global_b, field[ac] mut global_b_sign,
     field[ac][fe] local_w, field[ac][fe] mut local_w_sign,
-    field[ac] local_b, field[ac] mut local_b_sign,
-    field k) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
+    field[ac] local_b, field[ac] mut local_b_sign) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
     
     field[ac][fe] mut new_global_w = [[0; fe]; ac];
     field[ac] mut new_global_b = [0; ac] ;
     field[ac][fe] mut new_global_w_sign = [[0; fe]; ac];
     field[ac] mut new_global_b_sign = [0; ac];
+    field k_field = u32_to_field(k);
     
     // Update global weights using the provided logic
     for u32 i in 0..ac {
@@ -80,7 +80,7 @@ def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
             temp = tres.0;
             temp_sign = tres.1;
             // Divide the difference by k
-            (field, field) tres2 = divide(temp, k, temp_sign, 0);
+            (field, field) tres2 = divide(temp, k_field, temp_sign, 0);
             temp = tres2.0;
             temp_sign = tres2.1;
             // Add the update to the global_w[i][j]
@@ -99,7 +99,7 @@ def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
         temp = tres.0;
         temp_sign = tres.1;
         // Divide the difference by k
-        (field, field) tres2 = divide(temp, k, temp_sign, 0);
+        (field, field) tres2 = divide(temp, k_field, temp_sign, 0);
         temp = tres2.0;
         temp_sign = tres2.1;
         // Add the update to the global_b[i]
@@ -125,16 +125,43 @@ def hash_check(field[c] sc_hash, field[k] ag_hash) -> field {
     }
     return result; // Return 1 if all matches found, 0 otherwise
 }
+def mimc_cipher(field mut input, field[64] mut round_constants, field mut z) -> field{
+  
+  field mut a = 0;
+  
+  for u32 i in 0..64 {
+    a = input + round_constants[i] + z;
+    input = a ** 7;
+  }
+   return (input + z);
+}
+
+def mimc_hash(field[ac][fe] mut w, field[ac] mut b, field[64] mut round_constants) -> field {
+    field mut z = 0;
+
+    // Iterate over the activations/layers
+    for u32 i in 0..ac {
+        // Iterate over the features/weights per activation
+        for u32 j in 0..fe {
+            z = mimc_cipher(w[i][j], round_constants, z);
+        }
+        // Process the bias for each activation/layer
+        z = mimc_cipher(b[i], round_constants, z);
+    }
+
+    return z;
+}
 
 
 
 // Main function with correctness check
 def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_sign, 
     private field[ac] mut local_b, private field[ac] mut local_b_sign,
-    field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
-    field[ac] mut global_b, field[ac] global_b_sign,
-    field k, field[c] sc_hash, field[k] ag_hash,
-    field[ac][fe] expected_global_w, field[ac] expected_global_b) -> bool {
+    private field[ac][fe] mut global_w, private field[ac][fe] mut global_w_sign,
+    private field[ac] mut global_b, private field[ac] global_b_sign, private field[c] sc_hash, field[k] mut ag_hash,
+    private field[ac][fe] expected_global_w, private field[ac] expected_global_b,
+    private field[ac][fe] expected_global_w_sign, private field[ac] expected_global_b_sign, 
+    field mut digest) -> bool {
     
     field[ac][fe] mut computed_global_w = [[0; fe]; ac];
     field[ac][fe] mut computed_global_w_sign = [[0; fe]; ac];
@@ -142,15 +169,12 @@ def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_si
     field[ac] mut computed_global_b_sign = [0; ac];
     bool mut is_correct = true;
     
-    // Check if all ag_hash values are contained in sc_hash
-    field hashes_match = hash_check(sc_hash, ag_hash);
-    assert (hashes_match == 1);
+    
 
     // Compute updated global weights and biases
     (field[ac][fe], field[ac], field[ac][fe], field[ac]) tres = update_global(
         global_w, global_w_sign, global_b, global_b_sign,
-        local_w, local_w_sign, local_b, local_b_sign,
-        k
+        local_w, local_w_sign, local_b, local_b_sign
     );
     computed_global_w = tres.0;
     computed_global_b = tres.1;
@@ -161,13 +185,35 @@ def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_si
     for u32 i in 0..ac {
         for u32 j in 0..fe {
             
-            is_correct = if computed_global_w[i][j] != expected_global_w[i][j] {false} else {true};
+            is_correct = if is_correct && computed_global_w[i][j] != expected_global_w[i][j] && computed_global_w_sign[i][j] != expected_global_w_sign[i][j] {false} else {true};
             
         }
          
-        is_correct = if computed_global_b[i] != expected_global_b[i] {false} else {true};
+        is_correct = if is_correct && computed_global_b[i] != expected_global_b[i] && computed_global_b_sign[i] != expected_global_b_sign[i] {false} else {true};
     
     }
     
-    return is_correct;
+    assert (is_correct ==true);
+
+       field[64] round_constants = [
+        42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
+        10000042, 19487209, 35831850, 62748495, 105413546, 170859333,
+        268435498, 410338651, 612220074, 893871697, 1280000042, 1801088567,
+        2494357930, 3404825421, 4586471466, 6103515587, 8031810218, 10460353177,
+        13492928554, 17249876351, 21870000042, 27512614133, 34359738410,
+        42618442955, 52523350186, 64339296833, 78364164138, 94931877159,
+        114415582634, 137231006717, 163840000042, 194754273907, 230539333290,
+        271818611081, 319277809706, 373669453167, 435817657258, 506623120485,
+        587068342314, 678223072891, 781250000042, 897410677873, 1028071702570,
+        1174711139799, 1338925210026, 1522435234413, 1727094849578,
+        1954897493219, 2207984167594, 2488651484857, 2799360000042,
+        3142742835999, 3521614606250, 3938980639125
+    ];
+    // Check if all ag_hash values are contained in sc_hash
+    field hashes_match = hash_check(sc_hash, ag_hash);
+
+    field mut result = if mimc_hash(expected_global_w, expected_global_b, round_constants) == digest {0} else {1};
+    return result == 0 && hashes_match == 1 ;
+
 }
+

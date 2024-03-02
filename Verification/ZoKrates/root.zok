@@ -55,21 +55,6 @@ def multiply(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (f
     return (res, sign);
 }
 
-// def power(field mut base, field mut exponent, field mut base_sign, field mut exponent_sign) -> (field, field) {
-//     // Initialize the result and result sign
-//     field mut result = 1;
-//     field mut result_sign = 0;
-    
-//     // Loop to multiply base by itself exponent times
-//     for u32 i in 0..exponent {
-//         (result, result_sign) = multiply(result, base, result_sign, base_sign);
-//     }
-    
-//     // Return the result and its sign
-//     return (result, result_sign);
-// }
-
-
 // calculate the derivative of the Mean Squared Error (MSE) loss with respect to the predicted values
 // pr: A field element representing a precision value
 def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field[ac], field[ac]) {
@@ -89,31 +74,31 @@ def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_s
     return (result, result_sign);
 }
 
-def mse(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field, field) {
-   field mut sum = 0;
-    field mut sum_sign = 0;
-    for u32 i in 0..ac {
-        // Calculate squared difference for each pair
-        (field, field) mut diff = subtract(y_pred[i], y_true[i], y_pred_sign[i], 0);
-        field mut squared_diff = multiply(diff.0, diff.0, diff.1, diff.1).0;
+// def mse(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field, field) {
+//    field mut sum = 0;
+//     field mut sum_sign = 0;
+//     for u32 i in 0..ac {
+//         // Calculate squared difference for each pair
+//         (field, field) mut diff = subtract(y_pred[i], y_true[i], y_pred_sign[i], 0);
+//         field mut squared_diff = multiply(diff.0, diff.0, diff.1, diff.1).0;
         
-        // Adjust for precision: precision^2
-        field mut precision_squared = multiply(pr, pr, 0, 0).0;
-        field mut adjusted_diff = divide(squared_diff, precision_squared, 0, 0).0;
+//         // Adjust for precision: precision^2
+//         field mut precision_squared = multiply(pr, pr, 0, 0).0;
+//         field mut adjusted_diff = divide(squared_diff, precision_squared, 0, 0).0;
         
-        // Sum the adjusted squared differences
-        (sum, sum_sign) = add(sum, adjusted_diff, sum_sign, 0);
-    }
+//         // Sum the adjusted squared differences
+//         (sum, sum_sign) = add(sum, adjusted_diff, sum_sign, 0);
+//     }
     
-    // Calculate mean by dividing the sum by the count (ac), considering precision
-    field mut mean = divide(sum, ac_f, sum_sign, 0).0;
+//     // Calculate mean by dividing the sum by the count (ac), considering precision
+//     field mut mean = divide(sum, ac_f, sum_sign, 0).0;
     
-    // The function returns the mean and its sign
-    return (mean, 0); // Assuming mean sign is always positive for MSE
+//     // The function returns the mean and its sign
+//     return (mean, 0); // Assuming mean sign is always positive for MSE
     
-}
+// }
 def mimc_cipher(field mut input, field[64] mut round_constants, field mut k) -> field{
-  field num_round_constants = 64;
+  
   field mut a = 0;
   
   for u32 i in 0..64 {
@@ -179,10 +164,11 @@ def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x,
 def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] mut x, field[ac] mut output_error, field mut learning_rate, field mut pr, field[ac][fe] mut w_sign,field[ac] mut b_sign,field[fe] mut x_sign,field[ac] mut output_error_sign) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
     // Update Biases (b)
     for u32 i in 0..ac {
+        //tres shouldn't have mut ??
         (field, field) tres = divide(output_error[i], learning_rate, output_error_sign[i], 0);
         field temp = tres.0;
         field temp_sign = tres.1;
-        (field, field) tres2 = subtract(b[i], temp, b_sign[i], temp_sign);
+        (field, field) mut tres2 = subtract(b[i], temp, b_sign[i], temp_sign);
         b[i] = tres2.0;
         b_sign[i] = tres2.1;
     }
@@ -207,24 +193,7 @@ def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] m
 }
 
 //,field[bs][fe] x_train, field[bs][fe] x_train_sign ,field[bs] y_train,field learning_rate,field precision
-def main(field private [ac][fe] mut w, private field[ac][fe] mut w_sign, private field[ac] mut b, private field[ac] mut b_sign, private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,field mut learning_rate,field mut pr,field[ac][fe] mut w_new,field[ac] mut b_new, public field mut digest) -> bool {
-    // MIMC hash constant 
-    field[64] round_constants = [
-        42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
-        10000042, 19487209, 35831850, 62748495, 105413546, 170859333,
-        268435498, 410338651, 612220074, 893871697, 1280000042, 1801088567,
-        2494357930, 3404825421, 4586471466, 6103515587, 8031810218, 10460353177,
-        13492928554, 17249876351, 21870000042, 27512614133, 34359738410,
-        42618442955, 52523350186, 64339296833, 78364164138, 94931877159,
-        114415582634, 137231006717, 163840000042, 194754273907, 230539333290,
-        271818611081, 319277809706, 373669453167, 435817657258, 506623120485,
-        587068342314, 678223072891, 781250000042, 897410677873, 1028071702570,
-        1174711139799, 1338925210026, 1522435234413, 1727094849578,
-        1954897493219, 2207984167594, 2488651484857, 2799360000042,
-        3142742835999, 3521614606250, 3938980639125
-    ];
-    field mut result = if mimc_hash(w, b, round_constants) == digest {0} else {1};
-    assert(result == 0);
+def main(private field[ac][fe] mut w, private field[ac][fe] mut w_sign, private field[ac] mut b, private field[ac] mut b_sign, private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,field mut learning_rate,field mut pr,private field[ac][fe] mut w_new, private field[ac] mut b_new, public field mut digest) -> bool {
     
     // output values from the forward propagation
     field[ac] mut output_layer=[0;ac];
@@ -276,7 +245,25 @@ def main(field private [ac][fe] mut w, private field[ac][fe] mut w_sign, private
         }
     }
 
-    return res == u32_to_field(ac + fe * ac);
+    assert(res == u32_to_field(ac + fe * ac));
+
+    // MIMC hash constant 
+    field[64] round_constants = [
+        42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
+        10000042, 19487209, 35831850, 62748495, 105413546, 170859333,
+        268435498, 410338651, 612220074, 893871697, 1280000042, 1801088567,
+        2494357930, 3404825421, 4586471466, 6103515587, 8031810218, 10460353177,
+        13492928554, 17249876351, 21870000042, 27512614133, 34359738410,
+        42618442955, 52523350186, 64339296833, 78364164138, 94931877159,
+        114415582634, 137231006717, 163840000042, 194754273907, 230539333290,
+        271818611081, 319277809706, 373669453167, 435817657258, 506623120485,
+        587068342314, 678223072891, 781250000042, 897410677873, 1028071702570,
+        1174711139799, 1338925210026, 1522435234413, 1727094849578,
+        1954897493219, 2207984167594, 2488651484857, 2799360000042,
+        3142742835999, 3521614606250, 3938980639125
+    ];
+    field mut result = if mimc_hash(w_new, b_new, round_constants) == digest {0} else {1};
+    return result == 0;
 }
 
 //  The function main takes several parameters:
@@ -287,6 +274,3 @@ def main(field private [ac][fe] mut w, private field[ac][fe] mut w_sign, private
 // learning_rate is the learning rate for the training.
 // pr is a parameter related to the activation function.
 // w_new and b_new are the updated weights and bias.
-
-
-

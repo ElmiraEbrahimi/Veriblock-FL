@@ -24,7 +24,7 @@
 # zokrates export-verifier
 # # or verify natively
 # zokrates verify
-
+# docker run -v D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification:/home/zokrates/project -ti zokrates/zokrates /bin/bash
 array_one=("1" "1")
 array_two=("array two part one" "array two part two")
 # compile
