@@ -1,5 +1,5 @@
 import numpy as np
-
+from hash import mimc_hash
 ROUND_CONSTANTS = [
     42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
     10000042, 19487209, 35831850, 62748495, 105413546, 170859333,
@@ -18,7 +18,7 @@ ROUND_CONSTANTS = [
 SNARK_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
 def convert_matrix(m):
-    m = np.array(m, dtype=np.int64)  # suitable data type for large numbers
+    m = np.array(m)  # suitable data type for large numbers
     # ensure values are within the field range
     # adjusted_values = np.mod(m, SNARK_SCALAR_FIELD)
     adjusted_values = np.where(m < 0, SNARK_SCALAR_FIELD + m, m)

@@ -229,7 +229,7 @@ contract FederatedModel {
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[183] calldata input  // TODO: change inout size after hashing
+        uint[4] calldata input  // TODO: change inout size after hashing
     ) external TrainingMode {
         require(this.checkZKP(a, b, c, input));
         bool newUser = true;
@@ -365,7 +365,8 @@ contract FederatedModel {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[183] memory input
+        //uint[183] memory input. we make it 64
+        uint[4] memory input
     ) public returns (bool) {
         Verifier.Proof memory proof = Verifier.Proof(
             Pairing.G1Point(a[0], a[1]),
