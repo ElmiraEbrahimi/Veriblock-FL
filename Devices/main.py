@@ -1,7 +1,8 @@
 import threading
 import time
 from MiddleWare.BlockChainClient import BlockChainConnection
-from utils.utils import get_config_file_path, read_yaml
+#from utils.utils import get_config_file_path, read_yaml
+from utils.utils import read_yaml
 from Edge_Device.EdgeDevice import EdgeDevice
 from MiddleWare.Middleware import MiddleWare
 
@@ -20,7 +21,7 @@ def start_Device(deviceName, accountNr, blockchain_connection, config_file):
 
 
 if __name__ == "__main__":
-    _config_file_path = get_config_file_path()
+    _config_file_path = "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/CONFIG.yaml"
     config_file = read_yaml(_config_file_path)
     participant_count = config_file["DEFAULT"]["NumberOfParticipants"]
     #blockchain_connection = BlockChainConnection(config_file=config_file)

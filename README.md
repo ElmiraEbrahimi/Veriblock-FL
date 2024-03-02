@@ -25,7 +25,7 @@ Warning: this will install the latest zokrates version (version +0.8.0). Since v
 
 #### Docker
 
-- `docker run -v ./Verification:/home/zokrates/project -ti zokrates/zokrates:0.7.8 /bin/bash`
+- `docker run -v ./Verification:/home/zokrates/project -ti zokrates/zokrates /bin/bash`
 - `cd project`
 - `./generate_proof.sh` (if it generates error, make sure `chmod +x generate_proof.sh` is run)
 

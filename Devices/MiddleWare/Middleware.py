@@ -10,7 +10,8 @@ from sklearn.metrics import classification_report, accuracy_score
 import pandas as pd
 
 from Analytics.Analytics import Analytics
-from Devices.MiddleWare.aggregator.hash import mimc_hash
+#from Devices.MiddleWare.aggregator.hash import mimc_hash
+from MiddleWare.aggregator.hash import mimc_hash
 from MessageBroker.Consumer import Consumer
 from MiddleWare.NeuralNet import Network, FCLayer, mse_prime, mse
 
@@ -183,7 +184,7 @@ class FederatedLearningModel:
             learning_rate=self.learning_rate,
         )
         score = self.test_model()
-        print(f"{self.deviceName}:Score :", score)
+        print(f"{self.deviceName}: Score:", score)
 
     def reset_batch(self):
         self.curr_batch = None
@@ -288,6 +289,7 @@ class MiddleWare:
             bias_new,
             digest,
         ]
+        
         out_path = verification_base + "out"
         abi_path = verification_base + "abi.json"
         witness_path = verification_base + "witness_" + self.deviceName
@@ -304,6 +306,25 @@ class MiddleWare:
         ]
         zokrates_compute_witness.extend(args_parser(args).split(" "))
         g = subprocess.run(zokrates_compute_witness, capture_output=True)
+        #calculating the lenght for the error
+        # print("Output:", g.stdout.decode())
+        # print("Error:", g.stderr.decode())
+        # raise Exception(f'{ g.stderr.decode()} {g.stdout.decode()}')
+
+        # len(global_weights)  6 * 9
+        # len(global_weights_sign) len(global_weights_sign[0])  6 * 9
+        # len(global_bias) 6
+        # len(global_bias_sign) 6
+        # len(x) 40 * 9
+        # len(x_sign)  40 * 9
+        # len(y_train) 40
+        # len(str(learning_rate))
+        # len(str(self.precision))
+        # len(weights_new) 6 * 9
+        # len(bias_new) 6
+        # len(str(digest))
+
+
         proof_path = verification_base + "proof_" + self.deviceName
         proving_key_path = verification_base + "proving.key"
         zokrates_generate_proof = [
@@ -319,6 +340,9 @@ class MiddleWare:
             proof_path,
         ]
         g = subprocess.run(zokrates_generate_proof, capture_output=True)
+        #new added for error checking
+        #print("Output:", g.stdout.decode())
+        #print("Error:", g.stderr.decode())
         with open(proof_path, "r+") as f:
             self.proof = json.load(f)
 

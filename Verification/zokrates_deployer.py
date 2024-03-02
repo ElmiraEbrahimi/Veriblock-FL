@@ -3,7 +3,9 @@ import time
 
 import numpy as np
 
-from Devices.MiddleWare.NeuralNet import mse_prime
+#from Devices.MiddleWare.NeuralNet import mse_prime
+def mse_prime(y_true, y_pred):
+    return 2 * (y_pred - y_true) / y_true.size
 
 
 def convert_matrix(m):
@@ -44,12 +46,15 @@ zokrates_compile = [
     "--allow-unconstrained-variables",
 ]
 g = subprocess.run(zokrates_compile, capture_output=True)
+
 t2 = time.time()
 print(f"Compilation for {batchsize} samples took {t2-t1} seconds")
 
 zokrates_setup = [zokrates, "setup"]
 t1 = time.time()
 g = subprocess.run(zokrates_setup, capture_output=True)
+# debugging the error
+print('error:', g.stdout.decode())
 t2 = time.time()
 print(f"Setup for {batchsize} samples took {t2-t1} seconds")
 np.random.seed(0)
