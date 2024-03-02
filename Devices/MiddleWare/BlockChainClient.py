@@ -94,7 +94,8 @@ class BlockChainConnection:
         self.web3Connection.eth.wait_for_transaction_receipt(thxHash)
 
     def is_connected(self):
-        return self.web3Connection.is_connected()
+        #return self.web3Connection.is_connected()
+        return self.web3Connection.isConnected()
 
     def get_LearningRate(self, accountNR):
         self.precision = self.__get_Precision(accountNR)
@@ -134,8 +135,10 @@ class BlockChainConnection:
         return bias
 
     def get_account_balance(self, accountNR):
-        return self.web3Connection.from_wei(
-            self.web3Connection.eth.get_balance(
+        # return self.web3Connection.from_wei(
+        #     self.web3Connection.eth.get_balance(
+        return self.web3Connection.fromWei(
+            self.web3Connection.eth.getBalance(
                 self.web3Connection.eth.accounts[accountNR]
             ),
             "ether",
@@ -183,7 +186,7 @@ class BlockChainConnection:
             self.lock_newRound.release()
             return newround
 
-    def __send_wb_hash(self, weights, bias, accountNR, proof):
+    def __send_wb_hash(self, weights, bias, mse_score, accountNR, proof):
         weights = [[int(x) for x in y] for y in weights]
         bias = [int(x) for x in bias]
         device = Device(
@@ -192,6 +195,7 @@ class BlockChainConnection:
             address=self.web3Connection.eth.accounts[accountNR],
             weights=weights,
             bias=bias,
+            mse_score=mse_score,
         )
 
         # # generate hash of local weight and local bias:
@@ -237,12 +241,12 @@ class BlockChainConnection:
                 return
         print(f"AccountNr = {accountNR}: UPDATE FAILED. Trx: {str(thxHash)}")
 
-    def update(self, weights, bias, accountNR, proof=None):
+    def update(self, weights, bias, mse_score, accountNR, proof=None):
         if self.config["DEFAULT"]["PerformProof"]:
             tries = 5
             while tries > 0:
                 try:
-                    self.__send_wb_hash(weights, bias, accountNR, proof)
+                    self.__send_wb_hash(weights, bias, mse_score, accountNR, proof)
                     tries = -1
                 except:
                     time.sleep(self.config["DEFAULT"]["WaitingTime"])

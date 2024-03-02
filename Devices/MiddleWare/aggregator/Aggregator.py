@@ -1,3 +1,4 @@
+import json
 import subprocess
 from typing import Optional
 
@@ -15,6 +16,7 @@ class Device:
         address: str,
         weights: Optional[list[list[int]]],
         bias: Optional[list[int]],
+        mse_score: Optional[float],
         aggregator: Optional[object],
         blockchain_connection: object,
     ):
@@ -23,6 +25,7 @@ class Device:
         self.address = address
         self.weights = weights
         self.bias = bias
+        self.mse_score = mse_score
         self.wb_hash = self.generate_wb_hash(w=self.weights, b=self.bias)
 
     def __eq__(self, __value: object) -> bool:
@@ -37,7 +40,10 @@ class Device:
 
     def send_wb_to_aggregator(self):
         self.aggregator.store_device_wb(
-            device_id=self.address, w=self.weights, b=self.bias
+            device_id=self.address,
+            w=self.weights,
+            b=self.bias,
+            mse_score=self.mse_score,
         )
 
     def send_wb_hash_to_smart_contract(self) -> bool:
@@ -60,9 +66,13 @@ class OffChainAggregator:
         self.blockchain_connection = blockchain_connection
         self.blockchain_account = blockchain_account
         self.round_number: int = 0
-        # address: [wb_hash, w, b]
-        self.stored_device_data: dict[str, list[str, list[list[int]], list[int]]] = {}
-        self.selected_device_data: dict[str, list[list[int], list[int]]] = {}
+        self.historical_selected_device_count: dict[str, int] = {}
+        # address: [wb_hash, w, b, mse_score]
+        self.stored_device_data: dict[
+            str,
+            list[str, list[list[int]], list[int], float],
+        ] = {}
+        self.selected_device_data: dict[str, list[list[int], list[int], float]] = {}
         self.new_global_weights: list[list[int]] = []
         self.new_global_bias: list[int] = []
         self.new_generated_proof = ""
@@ -92,19 +102,47 @@ class OffChainAggregator:
     # endregion
 
     def store_device_wb(
-        self, device_id: str, w: list[list[list[int]]], b: list[int]
+        self, device_id: str, w: list[list[list[int]]], b: list[int], mse_score: float
     ) -> bool:
         wb_hash = mimc_hash(w=w, b=b)
         if not self.is_wb_hash_in_sc(wb_hash):
             # hash not in the smart contract:
             return False
         # hash is in smart contract:
-        self.stored_device_data[device_id] = [wb_hash, w, b]
+        self.stored_device_data[device_id] = [wb_hash, w, b, mse_score]
         return True
 
-    def select_devices(self) -> dict[str, list[str, list[list[int]], list[int]]]:
-        selected_devices = self.stored_device_data
-        return selected_devices
+    def select_devices(self, epsilon=1, select_count=3) -> list[str]:
+
+        inverse_mse_scores = {}
+        for device_id in self.stored_device_data:
+            # fetch mse score:
+            mse_score = self.stored_device_data[device_id][3]
+            # calculate inverse mse score:
+            inverse_score = 1 / (mse_score + epsilon)
+            # normalize the inverse score:
+            historical_selection_count = self.historical_selected_device_count.get(
+                device_id, 0
+            )
+            adjusted_score = inverse_score / (historical_selection_count + 1)
+            # save the adjusted score:
+            inverse_mse_scores[device_id] = adjusted_score
+
+        # select the top devices:
+        top_device_ids = sorted(
+            inverse_mse_scores, key=inverse_mse_scores.get, reverse=True
+        )[:select_count]
+
+        selected_device_ids = top_device_ids
+
+        # record in history the selected devices:
+        for selected_device_id in selected_device_ids:
+            if selected_device_id in self.historical_selected_device_count:
+                self.historical_selected_device_count[selected_device_id] += 1
+            else:
+                self.historical_selected_device_count[selected_device_id] = 1
+
+        return selected_device_ids
 
     def calculate_moving_average(self) -> tuple:
         selected_weights = [device[1] for device in self.selected_device_data.values()]
@@ -142,7 +180,9 @@ class OffChainAggregator:
             return np.where(m < 0, max_field + m, m), np.where(m > 0, 0, 1)
 
         zokrates = "zokrates"
-        aggregator_zokrates_base = self.config["DEFAULT"]["ZokratesBase"] + "aggregator/"
+        aggregator_zokrates_base = (
+            self.config["DEFAULT"]["ZokratesBase"] + "aggregator/"
+        )
         w, _ = convert_matrix(self.new_global_weights)
         b, _ = convert_matrix(self.new_global_bias)
         digest = mimc_hash(w=w, b=b)
@@ -200,7 +240,9 @@ class OffChainAggregator:
 
     def finish_round(self):
         # select devices:
-        self.selected_device_data = self.select_devices()
+        selected_device_ids = self.select_devices()
+        for device_id in selected_device_ids:
+            self.selected_device_data[device_id] = self.stored_device_data[device_id]
         # calculate moving average:
         self.new_global_weights, self.new_global_bias = self.calculate_moving_average()
         # generate the proof:

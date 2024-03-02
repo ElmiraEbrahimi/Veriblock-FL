@@ -10,7 +10,6 @@ from sklearn.metrics import classification_report, accuracy_score
 import pandas as pd
 
 from Analytics.Analytics import Analytics
-#from Devices.MiddleWare.aggregator.hash import mimc_hash
 from MiddleWare.aggregator.hash import mimc_hash
 from MessageBroker.Consumer import Consumer
 from MiddleWare.NeuralNet import Network, FCLayer, mse_prime, mse
@@ -289,7 +288,6 @@ class MiddleWare:
             bias_new,
             digest,
         ]
-        
         out_path = verification_base + "out"
         abi_path = verification_base + "abi.json"
         witness_path = verification_base + "witness_" + self.deviceName
@@ -306,24 +304,13 @@ class MiddleWare:
         ]
         zokrates_compute_witness.extend(args_parser(args).split(" "))
         g = subprocess.run(zokrates_compute_witness, capture_output=True)
-        #calculating the lenght for the error
-        # print("Output:", g.stdout.decode())
-        # print("Error:", g.stderr.decode())
+
+        print(f"{self.deviceName} output:", g.stdout.decode())
+        errors = g.stderr.decode()
+        if errors:
+            print(f"{self.deviceName} error:", errors)
+
         # raise Exception(f'{ g.stderr.decode()} {g.stdout.decode()}')
-
-        # len(global_weights)  6 * 9
-        # len(global_weights_sign) len(global_weights_sign[0])  6 * 9
-        # len(global_bias) 6
-        # len(global_bias_sign) 6
-        # len(x) 40 * 9
-        # len(x_sign)  40 * 9
-        # len(y_train) 40
-        # len(str(learning_rate))
-        # len(str(self.precision))
-        # len(weights_new) 6 * 9
-        # len(bias_new) 6
-        # len(str(digest))
-
 
         proof_path = verification_base + "proof_" + self.deviceName
         proving_key_path = verification_base + "proving.key"
@@ -340,9 +327,12 @@ class MiddleWare:
             proof_path,
         ]
         g = subprocess.run(zokrates_generate_proof, capture_output=True)
-        #new added for error checking
-        #print("Output:", g.stdout.decode())
-        #print("Error:", g.stderr.decode())
+
+        print(f"{self.deviceName} output:", g.stdout.decode())
+        errors = g.stderr.decode()
+        if errors:
+            print(f"{self.deviceName} error:", errors)
+
         with open(proof_path, "r+") as f:
             self.proof = json.load(f)
 
@@ -356,9 +346,9 @@ class MiddleWare:
         self.consumer_thread = threading.Thread(target=self.consumer.start_consuming)
         self.consumer_thread.start()
 
-    def update(self, w, b, p, r, balance):
+    def update(self, w, b, mse_score, p, r, balance):
         tu = time.time()
-        self.blockChainConnection.update(w, b, self.accountNR, p)
+        self.blockChainConnection.update(w, b, mse_score, self.accountNR, p)
         self.analytics.add_round_update_blockchain_time(r, time.time() - tu)
         self.analytics.add_round_gas(
             self.round,
@@ -410,6 +400,7 @@ class MiddleWare:
                 )
                 w = self.model.get_weights()
                 b = self.model.get_bias()
+                mse_score = self.model.net.mse_average
                 if self.config["DEFAULT"]["PerformProof"]:
                     tp = time.time()
                     self.__generate_Proof(
@@ -424,7 +415,8 @@ class MiddleWare:
                     self.analytics.add_round_proof_times(self.round, time.time() - tp)
                 self.model.reset_batch()
                 thread = threading.Thread(
-                    target=self.update, args=[w, b, self.proof, self.round, balance]
+                    target=self.update,
+                    args=[w, b, mse_score, self.proof, self.round, balance],
                 )
                 thread.start()
                 print(
