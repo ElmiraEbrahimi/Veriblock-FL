@@ -1,20 +1,76 @@
 import numpy as np
+
 ROUND_CONSTANTS = [
-    42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
-    10000042, 19487209, 35831850, 62748495, 105413546, 170859333,
-    268435498, 410338651, 612220074, 893871697, 1280000042, 1801088567,
-    2494357930, 3404825421, 4586471466, 6103515587, 8031810218, 10460353177,
-    13492928554, 17249876351, 21870000042, 27512614133, 34359738410,
-    42618442955, 52523350186, 64339296833, 78364164138, 94931877159,
-    114415582634, 137231006717, 163840000042, 194754273907, 230539333290,
-    271818611081, 319277809706, 373669453167, 435817657258, 506623120485,
-    587068342314, 678223072891, 781250000042, 897410677873, 1028071702570,
-    1174711139799, 1338925210026, 1522435234413, 1727094849578,
-    1954897493219, 2207984167594, 2488651484857, 2799360000042,
-    3142742835999, 3521614606250, 3938980639125
+    42,
+    43,
+    170,
+    2209,
+    16426,
+    78087,
+    279978,
+    823517,
+    2097194,
+    4782931,
+    10000042,
+    19487209,
+    35831850,
+    62748495,
+    105413546,
+    170859333,
+    268435498,
+    410338651,
+    612220074,
+    893871697,
+    1280000042,
+    1801088567,
+    2494357930,
+    3404825421,
+    4586471466,
+    6103515587,
+    8031810218,
+    10460353177,
+    13492928554,
+    17249876351,
+    21870000042,
+    27512614133,
+    34359738410,
+    42618442955,
+    52523350186,
+    64339296833,
+    78364164138,
+    94931877159,
+    114415582634,
+    137231006717,
+    163840000042,
+    194754273907,
+    230539333290,
+    271818611081,
+    319277809706,
+    373669453167,
+    435817657258,
+    506623120485,
+    587068342314,
+    678223072891,
+    781250000042,
+    897410677873,
+    1028071702570,
+    1174711139799,
+    1338925210026,
+    1522435234413,
+    1727094849578,
+    1954897493219,
+    2207984167594,
+    2488651484857,
+    2799360000042,
+    3142742835999,
+    3521614606250,
+    3938980639125,
 ]
 
-SNARK_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+SNARK_SCALAR_FIELD = (
+    21888242871839275222246405745257275088548364400416034343698204186575808495617
+)
+
 
 def convert_matrix(m):
     m = np.array(m)  # suitable data type for large numbers
@@ -24,27 +80,51 @@ def convert_matrix(m):
     sign_mask = np.where(m > 0, 0, 1)  # This remains unchanged
     return adjusted_values, sign_mask
 
+    # adjusted_values = []
+    # sign_mask = []
+    # for row in m:
+    #     # Ensure row is iterable
+    #     if isinstance(row, int):
+    #         row = row % SNARK_SCALAR_FIELD
+    #         if row < 0:
+    #             row += SNARK_SCALAR_FIELD
+    #         adjusted_values.append(row)
+    #         sign_mask.append(0 if row > 0 else 1)
+    #     else:
+    #         adjusted_row = []
+    #         sign_row = []
+    #         for value in row:
+    #             adjusted_value = value % SNARK_SCALAR_FIELD
+    #             if value < 0:
+    #                 adjusted_value += SNARK_SCALAR_FIELD
+    #             adjusted_row.append(adjusted_value)
+    #             sign_row.append(0 if value > 0 else 1)
+    #         adjusted_values.append(adjusted_row)
+    #         sign_mask.append(sign_row)
+    # return adjusted_values, sign_mask
+
+
 def mimc(x, k, e=7, R=64):
+    # try:
     for i in range(R):
         c_i = ROUND_CONSTANTS[i]
         # ensure the operation stays within field
         a = (x + k + c_i) % SNARK_SCALAR_FIELD
         x = pow(a, e, SNARK_SCALAR_FIELD)
+    # except Exception:
+    #     raise Exception(f"{x=}, {k=}, {c_i=}, {e=}, {SNARK_SCALAR_FIELD=}")
     return (x + k) % SNARK_SCALAR_FIELD
+
 
 def mimc_hash(w: np.ndarray, b: np.ndarray, k=0, e=7, R=64):
     global_weights, _ = convert_matrix(w)
-    print("Global Weights:", global_weights)
     global_bias, _ = convert_matrix(b)
-    print("global_bias:", global_bias)
-
     for i in range(len(global_weights)):
-        for j in range(global_weights[i].size): 
+        for j in range(len(global_weights[i])):
             k = mimc(global_weights[i][j], k, e, R)
         k = mimc(global_bias[i], k, e, R)
 
     return k
-
 
 
 if __name__ == "__main__":

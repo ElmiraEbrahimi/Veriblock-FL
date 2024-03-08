@@ -114,6 +114,7 @@ class Network:
         self.input_dimension = inputdimension
         self.output_dimension = outputdimension
         self.precision = precision
+        self.mse_average = None
 
     # add layer to network
     def add(self, layer):
@@ -203,4 +204,5 @@ class Network:
 
             # calculate average error on all samples
             err /= samples
+            self.mse_average = err
             # print('epoch %d/%d   error=%f' % (i+1, epochs, err))

@@ -1,3 +1,24 @@
+# # End of https://www.toptal.com/developers/gitignore/api/django,python,venv,virtualenv,osx,linux,windows,jetbrains,visualstudiocode,typings,test,pydev,pycharm,database
+# # Project exclude paths
+# Devices/MiddleWare/node_modules/
+# Devices/Edge_Device/data/Device_*
+# Devices/Edge_Device/data/outfile_merged.txt
+# Devices/Edge_Device/data/test_file.txt
+# Devices/Edge_Device/data/test.txt
+# Devices/Edge_Device/data/train.txt
+# node_modules
+# Verification/proof.json
+# Verification/abi.json
+# Verification/proof.json
+# Verification/proving.key
+# Verification/verification.key
+# Verification/witness
+# Verification/root
+# Verification/root.r1cs
+# Verification/out.r1cs
+# Verification/out.wtns
+# Verification/out
+
 # Created by https://www.toptal.com/developers/gitignore/api/django,python,venv,virtualenv,osx,linux,windows,jetbrains,visualstudiocode,typings,test,pydev,pycharm,database
 
 ### Database ###
@@ -141,7 +162,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -651,6 +671,8 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/django,python,venv,virtualenv,osx,linux,windows,jetbrains,visualstudiocode,typings,test,pydev,pycharm,database
+
+
 # Project exclude paths
 Devices/MiddleWare/node_modules/
 Devices/Edge_Device/data/Device_*
@@ -659,14 +681,17 @@ Devices/Edge_Device/data/test_file.txt
 Devices/Edge_Device/data/test.txt
 Devices/Edge_Device/data/train.txt
 node_modules
-Verification/proof.json
 Verification/abi.json
-Verification/proof.json
+Verification/out
+Verification/out.r1cs
 Verification/proving.key
 Verification/verification.key
-Verification/witness
-Verification/root
-Verification/root.r1cs
-Verification/out.r1cs
-Verification/out.wtns
-Verification/out
+Verification/verifier.sol
+
+
+Verification/ZoKrates/aggregator/abi.json
+Verification/ZoKrates/aggregator/abi.json
+Verification/ZoKrates/aggregator/out
+Verification/ZoKrates/aggregator/out.r1cs
+Verification/ZoKrates/aggregator/verification.key
+Verification/ZoKrates/aggregator/proving.key

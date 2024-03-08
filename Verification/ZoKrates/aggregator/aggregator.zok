@@ -105,7 +105,6 @@ def update_global(
     return (new_global_w, new_global_b, new_global_w_sign, new_global_b_sign);
 }
     
-
 // Function to check if all ag_hash values are in sc_hash
 def agg_selected_hash_check(field[c] sc_hash, field[k] ag_hash) -> field {
     field mut result = 1; // Assume all hashes match initially
@@ -120,6 +119,7 @@ def agg_selected_hash_check(field[c] sc_hash, field[k] ag_hash) -> field {
     }
     return result; // Return 1 if all matches found, 0 otherwise
 }
+
 // we should check if aggregator used those verified model or not
 def local_hash_check(field[c] sc_hash, field[k] local_params_hash) -> field {
     field mut is_current_hash_found = 1;// Assume all hashes match initially
@@ -160,17 +160,24 @@ def mimc_hash(field[ac][fe] mut w, field[ac] mut b, field[64] mut round_constant
 }
 
 
-
-
-def main(private field[k][ac][fe] mut local_w, private field[k][ac][fe] mut local_w_sign, 
-    private field[k][ac] mut local_b, private field[k][ac] mut local_b_sign,
-    private field[ac][fe] mut global_w, private field[ac][fe] mut global_w_sign,
-    private field[ac] mut global_b, private field[ac] global_b_sign, 
+def main(
+    private field[k][ac][fe] mut local_w,
+    private field[k][ac][fe] mut local_w_sign, 
+    private field[k][ac] mut local_b,
+    private field[k][ac] mut local_b_sign,
+    private field[ac][fe] mut global_w,
+    private field[ac][fe] mut global_w_sign,
+    private field[ac] mut global_b,
+    private field[ac] global_b_sign, 
     // field[c] local_params_hash, 
-    field[c] sc_hash, field[k] mut ag_hash,
-    private field[ac][fe] expected_global_w, private field[ac] expected_global_b,
-    private field[ac][fe] expected_global_w_sign, private field[ac] expected_global_b_sign, 
-    field mut digest) -> bool {
+    field[c] sc_hash,
+    field[k] mut ag_hash,
+    private field[ac][fe] expected_global_w,
+    private field[ac] expected_global_b,
+    private field[ac][fe] expected_global_w_sign,
+    private field[ac] expected_global_b_sign, 
+    field mut digest
+    ) -> bool {
     
     field[ac][fe] mut computed_global_w = [[0; fe]; ac];
     field[ac][fe] mut computed_global_w_sign = [[0; fe]; ac];
@@ -178,10 +185,7 @@ def main(private field[k][ac][fe] mut local_w, private field[k][ac][fe] mut loca
     field[ac] mut computed_global_b_sign = [0; ac];
     bool mut is_correct = true;
 
-
     field[c] mut local_hash_check = [0; c];
-    
-    
 
     // Compute updated global weights and biases
     (field[ac][fe], field[ac], field[ac][fe], field[ac]) tres = update_global(
@@ -196,18 +200,14 @@ def main(private field[k][ac][fe] mut local_w, private field[k][ac][fe] mut loca
     // Check if computed values match the expected values
     for u32 i in 0..ac {
         for u32 j in 0..fe {
-            
-            is_correct = if is_correct && computed_global_w[i][j] != expected_global_w[i][j] && computed_global_w_sign[i][j] != expected_global_w_sign[i][j] {false} else {true};
-            
+            is_correct = if (is_correct) && (computed_global_w[i][j] != expected_global_w[i][j]) && (computed_global_w_sign[i][j] != expected_global_w_sign[i][j]) {false} else {true};
         }
-         
-        is_correct = if is_correct && computed_global_b[i] != expected_global_b[i] && computed_global_b_sign[i] != expected_global_b_sign[i] {false} else {true};
-    
+        is_correct = if (is_correct) && (computed_global_b[i] != expected_global_b[i]) && (computed_global_b_sign[i] != expected_global_b_sign[i]) {false} else {true};
     }
     
-    assert (is_correct ==true);
+    assert (is_correct == true);
 
-       field[64] round_constants = [
+    field[64] round_constants = [
         42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
         10000042, 19487209, 35831850, 62748495, 105413546, 170859333,
         268435498, 410338651, 612220074, 893871697, 1280000042, 1801088567,
@@ -234,14 +234,8 @@ def main(private field[k][ac][fe] mut local_w, private field[k][ac][fe] mut loca
     field lhashes_match =local_hash_check(sc_hash, local_hash_check);
     assert(lhashes_match==1);
 
-
-
-
     
     field mut result = if mimc_hash(expected_global_w, expected_global_b, round_constants) == digest {1} else {0};
     return result == 1 && ghashes_match == 1 ;
 
 }
-
-
-

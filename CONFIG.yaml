@@ -59,3 +59,85 @@ DEFAULT:
     14: 4
     15: 5
     17: 6
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  #   DEFAULT:
+  # Activities:
+  # - 5
+  # - 11
+  # - 12
+  # - 14
+  # - 15
+  # - 17
+  # ActivitiesEncoded:
+  # - 1
+  # - 2
+  # - 3
+  # - 4
+  # - 5
+  # - 6
+  # ActivityEncoding:
+  #   5: 1
+  #   11: 2
+  #   12: 3
+  #   14: 4
+  #   15: 5
+  #   17: 6
+  # ActivityMappings:
+  #   2: 1
+  #   3: 1
+  #   4: 1
+  #   6: 5
+  #   7: 1
+  #   10: 11
+  #   13: 14
+  #   16: 15
+  # AnalyticsOutBase: 'Devices/MiddleWare/Analytics/'
+  # BatchSize: 10
+  # DeviceDataPath: 'Devices/Edge_Device/data'
+  # Epochs: 1
+  # EtheriumRPCServer: http://127.0.0.1:8545
+  # FLContractABIPAth: 'Blockchain/Truffle/build/contracts/FederatedModel.json'
+  # FLContractAddress: '0x49040311a69AF37f97816EFc644aB88e60Ba5Af1'
+  # Gas: 100000000000000
+  # InputDimension: 9
+  # IntervalDataGenerator: 1
+  # IntervalTime: 40
+  # LearningRate: 1000
+  # MessageBrokerHost: localhost
+  # NumberOfParticipants: 6
+  # NumberOfSamplesGenerated: 50
+  # OutputDimension: 6
+  # PercentOfDataGenerated: 0.0086
+  # PerformProof: true
+  # Precision: 10000
+  # QueueBase: Queue
+  # ResponseVariable: Activity
+  # Rounds: 300
+  # TestFilePath: 'Devices/Edge_Device/data/test_file.txt'
+  # TrainFilePath: 'Devices/Edge_Device/data/'
+  # VerificationBase: 'Verification/'
+  # ZokratesBase: 'Verification/ZoKrates/'
+  # VerifierContractAddress: '0x1491Ea93E7580Df20aA8636aa59f10886B12AD35'
+  # VerifierAggregatorContractAddress: '0x4bFe419e70A2E07C8B43314AE29FC31ABA67d22b'
+  # WaitingTime: 2
+  # ZokratesPath: 'Verification/ZoKrates/root.zok'

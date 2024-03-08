@@ -4,10 +4,8 @@ import time
 import numpy as np
 from web3 import Web3
 import json
-#from Devices.MiddleWare.Aggregator import moving_average_all
 
-from MiddleWare.aggregator.aggregator import OffChainAggregator
-from MiddleWare.aggregator.aggregator import Device
+from MiddleWare.aggregator.aggregator import Device, OffChainAggregator
 
 
 class BlockChainConnection:
@@ -73,7 +71,8 @@ class BlockChainConnection:
             )
             self.__await_Transaction(thxHash)
             thxHash = self.FLcontractDeployed.functions.updateVerifier(
-                self.config["DEFAULT"]["VerifierContractAddress"]
+                self.config["DEFAULT"]["VerifierContractAddress"],
+                self.config["DEFAULT"]["VerifierAggregatorContractAddress"]
             ).transact({"from": self.web3Connection.eth.accounts[0]})
             self.__await_Transaction(thxHash)
 
@@ -94,7 +93,6 @@ class BlockChainConnection:
         self.web3Connection.eth.wait_for_transaction_receipt(thxHash)
 
     def is_connected(self):
-        #return self.web3Connection.is_connected()
         return self.web3Connection.isConnected()
 
     def get_LearningRate(self, accountNR):
@@ -135,8 +133,6 @@ class BlockChainConnection:
         return bias
 
     def get_account_balance(self, accountNR):
-        # return self.web3Connection.from_wei(
-        #     self.web3Connection.eth.get_balance(
         return self.web3Connection.fromWei(
             self.web3Connection.eth.getBalance(
                 self.web3Connection.eth.accounts[accountNR]
