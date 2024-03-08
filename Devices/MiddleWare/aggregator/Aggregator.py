@@ -3,6 +3,7 @@ import subprocess
 from typing import Optional
 
 import numpy as np
+from web3 import Web3
 
 from MiddleWare.aggregator.hash import mimc_hash
 
@@ -91,15 +92,31 @@ class OffChainAggregator:
         )
         return wb_hash in wb_hashes
 
-    def set_new_wb_in_sc(self) -> bool:
-        thxHash = self.blockchain_connection.FLcontractDeployed.functions.setTempGlobal(
-            self.new_global_weights, self.new_global_bias
-        ).transact({"from": self.blockchain_account})
+    def _send_aggregator_wb(self) -> bool:
+        a, b, c, inputs = self.__check_ZKP_aggregator(self.new_generated_proof)
+        # send to smart contract:
+        thxHash = (
+            self.blockchain_connection.FLcontractDeployed.functions.send_aggregator_wb(
+                self.new_global_weights, self.new_global_bias, a, b, c, inputs
+            ).transact({"from": self.blockchain_account})
+        )
         self.blockchain_connection.__await_Transaction(thxHash)
 
         return True
 
     # endregion
+
+    def __check_ZKP_aggregator(self, proof):
+        a = proof["proof"]["a"]
+        a = [Web3.toInt(hexstr=x) for x in a]
+        b = proof["proof"]["b"]
+        b = [[Web3.toInt(hexstr=x) for x in y] for y in b]
+        c = proof["proof"]["c"]
+        c = [Web3.toInt(hexstr=x) for x in c]
+        inputs = proof["inputs"]
+        inputs = [Web3.toInt(hexstr=x) for x in inputs]
+
+        return a, b, c, inputs
 
     def store_device_wb(
         self, device_id: str, w: list[list[list[int]]], b: list[int], mse_score: float
@@ -223,7 +240,7 @@ class OffChainAggregator:
         ]
         g = subprocess.run(zokrates_generate_proof, capture_output=True)
         with open(proof_path, "r+") as f:
-            self.proof = json.load(f)
+            self.new_generated_proof = json.load(f)
 
     def clear_round(self):
         self.stored_device_data = {}
@@ -248,7 +265,7 @@ class OffChainAggregator:
         # generate the proof:
         # self.new_generated_proof = self.generate_proof()  # TODO
         # send the calculated global weights and bias to the smart contract:
-        self.set_new_wb_in_sc()
+        self._send_aggregator_wb()
 
 
 # endregion

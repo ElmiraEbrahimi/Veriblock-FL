@@ -9,18 +9,12 @@ const u32  fe = 9;
 const u32  ac = 6;
 const field ac_f=6;
 const u32  bs = 10;
-// k also needs to be defined # of participant in the client selection ex. 5 also all client 
-const u32  k = 5;
+// k also needs to be defined # of participant in the client selection ex. 5.
+// here we assume that aggregator uses all local models so k=c 
+const u32  k = 9;
+// number of all clients
 const u32  c = 9;
 
-// // Abstract common preprocessing into a separate function
-// def cleanse_and_sign(field a, field a_sign) -> field {
-//     field cleansed = if a_sign == 0 { a } else { max - a + 1 };
-//     field sign = if cleansed > threshold { 1 } else { 0 };
-//     return cleansed;
-// }
-//    field a_cleansed = cleanse_and_sign(a, a_sign);
-//    field b_cleansed = cleanse_and_sign(b, b_sign);
 
 def add(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
     field mut a_cleansed = if a_sign==0 { a } else { max-a+1};
@@ -55,64 +49,65 @@ def divide(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (fie
 }
 
 // Function to update global weights and biases
-def update_global(field[ac][fe] mut global_w, field[ac][fe] mut global_w_sign,
-    field[ac] mut global_b, field[ac] mut global_b_sign,
-    field[ac][fe] local_w, field[ac][fe] mut local_w_sign,
-    field[ac] local_b, field[ac] mut local_b_sign) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
+def update_global(
+    field[ac][fe] mut global_w, 
+    field[ac][fe] mut global_w_sign,
+    field[ac] mut global_b, 
+    field[ac] mut global_b_sign,
+    field[k][ac][fe] local_w, 
+    field[k][ac][fe] mut local_w_sign,
+    field[k][ac] local_b, 
+    field[k][ac] mut local_b_sign
+) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
     
+    // Initialize the new global parameters
     field[ac][fe] mut new_global_w = [[0; fe]; ac];
-    field[ac] mut new_global_b = [0; ac] ;
+    field[ac] mut new_global_b = [0; ac];
     field[ac][fe] mut new_global_w_sign = [[0; fe]; ac];
     field[ac] mut new_global_b_sign = [0; ac];
-    field k_field = u32_to_field(k);
-    
-    // Update global weights using the provided logic
-    for u32 i in 0..ac {
+    field k_field = u32_to_field(k); // Convert k to field type
 
-        field mut temp = 0;
-        field mut temp_sign = 0;
+    // Iterate over each client
+    for u32 client in 0..k {
+        // Update global weights for each client
+        for u32 i in 0..ac {
+            for u32 j in 0..fe {
+                (field, field) tres = subtract(local_w[client][i][j], global_w[i][j], local_w_sign[client][i][j], global_w_sign[i][j]);
+                field mut temp = tres.0;
+                field mut temp_sign = tres.1;
+                
+                (field, field) tres2 = divide(temp, k_field, temp_sign, 0);
+                temp = tres2.0;
+                temp_sign = tres2.1;
+                
+                (field, field) tres3 = add(global_w[i][j], temp, global_w_sign[i][j], temp_sign);
+                new_global_w[i][j] = tres3.0;
+                new_global_w_sign[i][j] = tres3.1;
+            }
+        }
 
-        //is the usage of tem correct?
-        for u32 j in 0..fe {
-            // Compute the difference local_w[i][j] - global_w[i][j]
-            // couldnt use without redundant variable tem? (field difference, field diff_sign)
-            (field, field) tres = subtract(local_w[i][j], global_w[i][j], local_w_sign[i][j], global_w_sign[i][j]);
-            temp = tres.0;
-            temp_sign = tres.1;
-            // Divide the difference by k
+        // Update global biases for each client
+        for u32 i in 0..ac {
+            (field, field) tres = subtract(local_b[client][i], global_b[i], local_b_sign[client][i], global_b_sign[i]);
+            field mut temp = tres.0;
+            field mut temp_sign = tres.1;
+            
             (field, field) tres2 = divide(temp, k_field, temp_sign, 0);
             temp = tres2.0;
             temp_sign = tres2.1;
-            // Add the update to the global_w[i][j]
-            (field, field) tres3 = add(global_w[i][j], temp, global_w_sign[i][j], temp_sign);
-            new_global_w[i][j] = tres3.0;
-            new_global_w_sign[i][j] = tres3.1;
+            
+            (field, field) tres3 = add(global_b[i], temp, global_b_sign[i], temp_sign);
+            new_global_b[i] = tres3.0;
+            new_global_b_sign[i] = tres3.1;
         }
     }
 
-    // Update global biases using the provided logic
-    for u32 i in 0..ac {
-         field mut temp = 0;
-        field mut temp_sign = 0;
-        // Compute the difference local_b[i] - global_b[i]
-        (field, field) tres = subtract(local_b[i], global_b[i], local_b_sign[i], global_b_sign[i]);
-        temp = tres.0;
-        temp_sign = tres.1;
-        // Divide the difference by k
-        (field, field) tres2 = divide(temp, k_field, temp_sign, 0);
-        temp = tres2.0;
-        temp_sign = tres2.1;
-        // Add the update to the global_b[i]
-        (field, field) tres3 = add(global_b[i], temp, global_b_sign[i], temp_sign);
-        new_global_b[i] = tres3.0;
-        new_global_b_sign[i] = tres3.1;
-    }
-    
-     return (new_global_w, new_global_b, new_global_w_sign, new_global_b_sign);
+    return (new_global_w, new_global_b, new_global_w_sign, new_global_b_sign);
 }
+    
 
 // Function to check if all ag_hash values are in sc_hash
-def hash_check(field[c] sc_hash, field[k] ag_hash) -> field {
+def agg_selected_hash_check(field[c] sc_hash, field[k] ag_hash) -> field {
     field mut result = 1; // Assume all hashes match initially
     for u32 i in 0..k {
         field mut found = 0;
@@ -125,6 +120,18 @@ def hash_check(field[c] sc_hash, field[k] ag_hash) -> field {
     }
     return result; // Return 1 if all matches found, 0 otherwise
 }
+// we should check if aggregator used those verified model or not
+def local_hash_check(field[c] sc_hash, field[k] local_params_hash) -> field {
+    field mut is_current_hash_found = 1;// Assume all hashes match initially
+    for u32 i in 0..k {
+        for u32 j in 0..c {
+            // Update 'found' if a match is found, but don't revert if a match was found earlier
+            is_current_hash_found = if sc_hash[i] == local_params_hash[j] { is_current_hash_found } else {0};
+        }
+    }
+    return is_current_hash_found; // Return 1 if all matches found, 0 otherwise
+}
+
 def mimc_cipher(field mut input, field[64] mut round_constants, field mut z) -> field{
   
   field mut a = 0;
@@ -154,11 +161,13 @@ def mimc_hash(field[ac][fe] mut w, field[ac] mut b, field[64] mut round_constant
 
 
 
-// Main function with correctness check
-def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_sign, 
-    private field[ac] mut local_b, private field[ac] mut local_b_sign,
+
+def main(private field[k][ac][fe] mut local_w, private field[k][ac][fe] mut local_w_sign, 
+    private field[k][ac] mut local_b, private field[k][ac] mut local_b_sign,
     private field[ac][fe] mut global_w, private field[ac][fe] mut global_w_sign,
-    private field[ac] mut global_b, private field[ac] global_b_sign, private field[c] sc_hash, field[k] mut ag_hash,
+    private field[ac] mut global_b, private field[ac] global_b_sign, 
+    // field[c] local_params_hash, 
+    field[c] sc_hash, field[k] mut ag_hash,
     private field[ac][fe] expected_global_w, private field[ac] expected_global_b,
     private field[ac][fe] expected_global_w_sign, private field[ac] expected_global_b_sign, 
     field mut digest) -> bool {
@@ -168,6 +177,9 @@ def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_si
     field[ac] mut computed_global_b = [0; ac];
     field[ac] mut computed_global_b_sign = [0; ac];
     bool mut is_correct = true;
+
+
+    field[c] mut local_hash_check = [0; c];
     
     
 
@@ -210,10 +222,26 @@ def main(private field[ac][fe] mut local_w, private field[ac][fe] mut local_w_si
         3142742835999, 3521614606250, 3938980639125
     ];
     // Check if all ag_hash values are contained in sc_hash
-    field hashes_match = hash_check(sc_hash, ag_hash);
+    field ghashes_match = agg_selected_hash_check(sc_hash, ag_hash);
+    // field lhashes_match =local_hash_check(sc_hash,local_params_hash);
+    // assert(lhashes_match==1);
 
-    field mut result = if mimc_hash(expected_global_w, expected_global_b, round_constants) == digest {0} else {1};
-    return result == 0 && hashes_match == 1 ;
+    for u32 i in 0..c {
+        // Calculate hash for each client's weights and biases
+        local_hash_check[i] = mimc_hash(local_w[i], local_b[i], round_constants);
+    }
+
+    field lhashes_match =local_hash_check(sc_hash, local_hash_check);
+    assert(lhashes_match==1);
+
+
+
+
+    
+    field mut result = if mimc_hash(expected_global_w, expected_global_b, round_constants) == digest {1} else {0};
+    return result == 1 && ghashes_match == 1 ;
 
 }
+
+
 

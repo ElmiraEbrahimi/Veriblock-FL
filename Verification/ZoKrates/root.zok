@@ -124,7 +124,6 @@ def mimc_hash(field[ac][fe] mut w, field[ac] mut b, field[64] mut round_constant
     return k;
 }
 
-
 // Forward Propagation Loop/Normalization
 def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x, field[ac][fe] mut w_sign, field[ac] mut b_sign, field[fe] mut x_sign, field mut pr) -> (field[ac], field[ac]) {
     field[ac] mut result = b;
@@ -193,7 +192,12 @@ def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] m
 }
 
 //,field[bs][fe] x_train, field[bs][fe] x_train_sign ,field[bs] y_train,field learning_rate,field precision
-def main(private field[ac][fe] mut w, private field[ac][fe] mut w_sign, private field[ac] mut b, private field[ac] mut b_sign, private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,field mut learning_rate,field mut pr,private field[ac][fe] mut w_new, private field[ac] mut b_new, public field mut digest) -> bool {
+def main(private field[ac][fe] mut w, private field[ac][fe] mut w_sign,
+    private field[ac] mut b, private field[ac] mut b_sign, 
+    private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,
+    field mut learning_rate,field mut pr,
+    private field[ac][fe] mut w_new, private field[ac] mut b_new, public field mut digest,
+    public field mut sc_global_params_hash) -> bool {
     
     // output values from the forward propagation
     field[ac] mut output_layer=[0;ac];
@@ -262,8 +266,16 @@ def main(private field[ac][fe] mut w, private field[ac][fe] mut w_sign, private 
         1954897493219, 2207984167594, 2488651484857, 2799360000042,
         3142742835999, 3521614606250, 3938980639125
     ];
-    field mut result = if mimc_hash(w_new, b_new, round_constants) == digest {0} else {1};
-    return result == 0;
+
+    field mut gobal_hash_check =  mimc_hash(w, b, round_constants);
+   
+    field mut is_current_hash_found = if sc_global_params_hash == gobal_hash_check { 1 } else {0};
+
+
+    field mut result = if mimc_hash(w_new, b_new, round_constants) == digest {1} else {0};
+    return result == 1 && is_current_hash_found ==1;
+
+
 }
 
 //  The function main takes several parameters:
