@@ -11,9 +11,9 @@ const field ac_f=6;
 const u32  bs = 10;
 // k also needs to be defined # of participant in the client selection ex. 5.
 // here we assume that aggregator uses all local models so k=c 
-const u32  k = 9;
+const u32  k = 6;
 // number of all clients
-const u32  c = 9;
+const u32  c = 6;
 
 
 def add(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {

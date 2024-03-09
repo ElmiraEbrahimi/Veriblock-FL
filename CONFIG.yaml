@@ -1,9 +1,9 @@
 DEFAULT:
 
-  #DeviceDataPath: 'Devices/Edge_Device/data'
-  DeviceDataPath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data"
-  #AnalyticsOutBase: 'Devices/Analytics/'
-  AnalyticsOutBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Analytics/"
+  DeviceDataPath: 'Devices/Edge_Device/data'
+  # DeviceDataPath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data"
+  AnalyticsOutBase: 'Devices/Analytics/'
+  # AnalyticsOutBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Analytics/"
   IntervalDataGenerator: 1
   NumberOfSamplesGenerated: 50
   MessageBrokerHost: "localhost"
@@ -17,10 +17,10 @@ DEFAULT:
   WaitingTime: 2
   BatchSize: 10
   Rounds: 300
-  #TestFilePath: 'Devices/Edge_Device/data/test_file.txt'
-  TestFilePath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data/test_file.txt"
-  #TrainFilePath: 'Devices/Edge_Device/data/'
-  TrainFilePath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data/"
+  TestFilePath: 'Devices/Edge_Device/data/test_file.txt'
+  # TestFilePath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data/test_file.txt"
+  TrainFilePath: 'Devices/Edge_Device/data/'
+  # TrainFilePath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data/"
   IntervalTime: 40
   PercentOfDataGenerated: 0.0086
   #PerformProof: False
@@ -30,17 +30,18 @@ DEFAULT:
   ResponseVariable: "Activity"
   EtheriumRPCServer: "http://127.0.0.1:8545"
   #change this when you compile the smart contract
-  FLContractAddress: "0x3C4180354f2174906881aD4Db996cC9A001cc383"
+  FLContractAddress: "0xc491F6A4Fd89ba5C4794E05768c26924d17d4b85"
   #change this when you compile the smart contract
-  VerifierContractAddress: "0x025b243548f55A5180Efc93E3082E230F8783CF8"
-  #ZokratesPath: 'Verification/ZoKrates/root.zok'
-  ZokratesPath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/ZoKrates/root.zok"
-  #VerificationBase: 'Verification/'
-  VerificationBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/SAVED_VERIFYER_10/"
-  #ZokratesBase: 'Verification/ZoKrates/'
-  ZokratesBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/ZoKrates/"
-  #FLContractABIPAth: 'Blockchain/Truffle/build/contracts/FederatedModel.json'
-  FLContractABIPAth: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Blockchain/Truffle/build/contracts/FederatedModel.json"
+  VerifierContractAddress: "0xeCBf0533B2535dE94bAeE28A953756957cdE8b38"
+  VerifierAggregatorContractAddress: "0x7f56107D520fFa9C52e31751bee6f13F9a87F6a4"
+  ZokratesPath: 'Verification/ZoKrates/root.zok'
+  # ZokratesPath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/ZoKrates/root.zok"
+  VerificationBase: 'Verification/'
+  # VerificationBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/SAVED_VERIFYER_10/"
+  ZokratesBase: 'Verification/ZoKrates/'
+  # ZokratesBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/ZoKrates/"
+  FLContractABIPAth: 'Blockchain/Truffle/build/contracts/FederatedModel.json'
+  # FLContractABIPAth: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Blockchain/Truffle/build/contracts/FederatedModel.json"
   Activities: [5, 11, 12, 14, 15, 17]
   ActivitiesEncoded: [1, 2, 3, 4, 5, 6]
   ActivityMappings:
@@ -59,85 +60,5 @@ DEFAULT:
     14: 4
     15: 5
     17: 6
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  #   DEFAULT:
-  # Activities:
-  # - 5
-  # - 11
-  # - 12
-  # - 14
-  # - 15
-  # - 17
-  # ActivitiesEncoded:
-  # - 1
-  # - 2
-  # - 3
-  # - 4
-  # - 5
-  # - 6
-  # ActivityEncoding:
-  #   5: 1
-  #   11: 2
-  #   12: 3
-  #   14: 4
-  #   15: 5
-  #   17: 6
-  # ActivityMappings:
-  #   2: 1
-  #   3: 1
-  #   4: 1
-  #   6: 5
-  #   7: 1
-  #   10: 11
-  #   13: 14
-  #   16: 15
   # AnalyticsOutBase: 'Devices/MiddleWare/Analytics/'
-  # BatchSize: 10
-  # DeviceDataPath: 'Devices/Edge_Device/data'
-  # Epochs: 1
-  # EtheriumRPCServer: http://127.0.0.1:8545
-  # FLContractABIPAth: 'Blockchain/Truffle/build/contracts/FederatedModel.json'
-  # FLContractAddress: '0x49040311a69AF37f97816EFc644aB88e60Ba5Af1'
-  # Gas: 100000000000000
-  # InputDimension: 9
-  # IntervalDataGenerator: 1
-  # IntervalTime: 40
-  # LearningRate: 1000
-  # MessageBrokerHost: localhost
-  # NumberOfParticipants: 6
-  # NumberOfSamplesGenerated: 50
-  # OutputDimension: 6
-  # PercentOfDataGenerated: 0.0086
-  # PerformProof: true
-  # Precision: 10000
-  # QueueBase: Queue
-  # ResponseVariable: Activity
-  # Rounds: 300
-  # TestFilePath: 'Devices/Edge_Device/data/test_file.txt'
-  # TrainFilePath: 'Devices/Edge_Device/data/'
-  # VerificationBase: 'Verification/'
-  # ZokratesBase: 'Verification/ZoKrates/'
-  # VerifierContractAddress: '0x1491Ea93E7580Df20aA8636aa59f10886B12AD35'
-  # VerifierAggregatorContractAddress: '0x4bFe419e70A2E07C8B43314AE29FC31ABA67d22b'
-  # WaitingTime: 2
-  # ZokratesPath: 'Verification/ZoKrates/root.zok'
+  #  NumberOfParticipants: 6

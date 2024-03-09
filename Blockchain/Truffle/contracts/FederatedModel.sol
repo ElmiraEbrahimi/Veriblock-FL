@@ -1,5 +1,6 @@
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
 
+pragma solidity ^0.8.0;
 import "./verifier.sol";
 pragma experimental ABIEncoderV2;
 
@@ -229,7 +230,7 @@ contract FederatedModel {
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[4] calldata input  // TODO: change inout size after hashing
+        uint[5] calldata input  // TODO: change inout size after hashing
     ) external TrainingMode {
         require(this.checkZKP(a, b, c, input));
         bool newUser = true;
@@ -366,7 +367,7 @@ contract FederatedModel {
         uint[2][2] memory b,
         uint[2] memory c,
         //uint[183] memory input. we make it 64
-        uint[4] memory input
+        uint[5] memory input
     ) public returns (bool) {
         Verifier.Proof memory proof = Verifier.Proof(
             Pairing.G1Point(a[0], a[1]),
