@@ -192,12 +192,21 @@ def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] m
 }
 
 //,field[bs][fe] x_train, field[bs][fe] x_train_sign ,field[bs] y_train,field learning_rate,field precision
-def main(private field[ac][fe] mut w, private field[ac][fe] mut w_sign,
-    private field[ac] mut b, private field[ac] mut b_sign, 
-    private field[bs][fe] mut x_train, private field[bs][fe] mut x_train_sign,private field[bs] mut y_train,
-    field mut learning_rate,field mut pr,
-    private field[ac][fe] mut w_new, private field[ac] mut b_new, public field mut digest,
-    public field mut sc_global_params_hash) -> bool {
+def main(
+    private field[ac][fe] mut w,
+    private field[ac][fe] mut w_sign,
+    private field[ac] mut b,
+    private field[ac] mut b_sign, 
+    private field[bs][fe] mut x_train,
+    private field[bs][fe] mut x_train_sign,
+    private field[bs] mut y_train,
+    field mut learning_rate,
+    field mut pr,
+    private field[ac][fe] mut w_new,
+    private field[ac] mut b_new,
+    public field mut digest,
+    public field mut sc_global_params_hash
+    ) -> bool {
     
     // output values from the forward propagation
     field[ac] mut output_layer=[0;ac];

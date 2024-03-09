@@ -173,8 +173,8 @@ def main(
     field[c] sc_hash,
     field[k] mut ag_hash,
     private field[ac][fe] expected_global_w,
-    private field[ac] expected_global_b,
     private field[ac][fe] expected_global_w_sign,
+    private field[ac] expected_global_b,
     private field[ac] expected_global_b_sign, 
     field mut digest
     ) -> bool {

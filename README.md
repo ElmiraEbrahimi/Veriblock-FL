@@ -114,7 +114,7 @@ See `./Verification/generate_proof.sh`.
 ## Prerequisites
 
 - [Python@3.9](https://www.python.org/downloads/)
-- [Npm@20+](https://nodejs.org/en/download)
+- [Node@20+](https://nodejs.org/en/download)
 - [Docker](https://docs.docker.com/engine/install/)
 
 ## Install and Run
@@ -208,7 +208,3 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 ## Run
 
 Start devices: `python Devices/main.py`
-
-## Questions
-
-- why verifier:input has length of 4? But we only provide 3 fields?

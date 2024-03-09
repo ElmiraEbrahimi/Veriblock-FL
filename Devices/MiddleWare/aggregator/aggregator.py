@@ -63,9 +63,18 @@ class Device:
 
 class OffChainAggregator:
 
-    def __init__(self, blockchain_connection: object, blockchain_account: str):
+    def __init__(
+        self,
+        blockchain_connection: object,
+        blockchain_account: str,
+        ipfs: object,
+        #fisrt round global parameters
+        global_w: list[list[int]],
+        global_b: list[int],
+    ):
         self.blockchain_connection = blockchain_connection
         self.blockchain_account = blockchain_account
+        self.ipfs = ipfs
         self.round_number: int = 0
         self.historical_selected_device_count: dict[str, int] = {}
         # address: [wb_hash, w, b, mse_score]
@@ -73,6 +82,10 @@ class OffChainAggregator:
             str,
             list[str, list[list[int]], list[int], float],
         ] = {}
+        # last round parameters:
+        self.global_w: list[list[int]] = global_w
+        self.global_b: list[int] = global_b
+        # current round:
         self.selected_device_data: dict[str, list[list[int], list[int], float]] = {}
         self.new_global_weights: list[list[int]] = []
         self.new_global_bias: list[int] = []
@@ -80,11 +93,38 @@ class OffChainAggregator:
 
     # region smart contract functions
 
-    def fetch_sc_round_number(self):
+    def get_sc_round_number(self):
         round = self.blockchain_connection.FLcontractDeployed.functions.getRoundNumber().call(
             {"from": self.blockchain_account}
         )
         return int(round)
+
+    # def get_sc_global_weights(self) -> list[list[int]]:
+    #     global_weights = self.blockchain_connection.get_globalWeights(
+    #         self.blockchain_account
+    #     )
+    #     return global_weights
+
+    # def _init_global_weights_sign(self, init_number: int = 0) -> list[list[int]]:
+    #     global_weights = self.global_w
+    #     signs: list[list[int]] = [[]]
+    #     for gw_row in global_weights:
+    #         row_sign = []
+    #         for _ in range(len(gw_row)):
+    #             row_sign.append(init_number)
+    #         signs.append(row_sign)
+    #     return signs
+
+    # def _init_global_bias_sign(self, init_number: int = 0) -> list[int]:
+    #     global_bias = self.global_b
+    #     signs: list[int] = []
+    #     for _ in global_bias:
+    #         signs.append(init_number)
+    #     return signs
+
+    # def get_sc_global_bias(self) -> list[int]:
+    #     global_bias = self.blockchain_connection.get_globalBias(self.blockchain_account)
+    #     return global_bias
 
     def is_wb_hash_in_sc(self, wb_hash: str) -> bool:
         wb_hashes = self.blockchain_connection.FLcontractDeployed.functions.getAllHashKeys().call(
@@ -92,19 +132,36 @@ class OffChainAggregator:
         )
         return wb_hash in wb_hashes
 
-    def _send_aggregator_wb(self) -> bool:
+    def _send_aggregator_wb_link(self) -> bool:
         a, b, c, inputs = self.__check_ZKP_aggregator(self.new_generated_proof)
+
+        # save to ipfs:
+        gw_ipfs_link = self._save_gw_to_ipfs(self.new_global_weights)
+        gb_ipfs_link = self._save_gb_to_ipfs(self.new_global_bias)
+
         # send to smart contract:
         thxHash = (
             self.blockchain_connection.FLcontractDeployed.functions.send_aggregator_wb(
-                self.new_global_weights, self.new_global_bias, a, b, c, inputs
+                gw_ipfs_link, gb_ipfs_link, a, b, c, inputs
             ).transact({"from": self.blockchain_account})
         )
         self.blockchain_connection.__await_Transaction(thxHash)
 
+        # save to Blockchain Client:
+        self.blockchain_connection.weight_ipfs_link = gw_ipfs_link
+        self.blockchain_connection.bias_ipfs_link = gb_ipfs_link
+
         return True
 
     # endregion
+
+    def _save_gw_to_ipfs(self, weights) -> str:
+        link = self.ipfs.save_global_weight(weights)
+        return link
+
+    def _save_gb_to_ipfs(self, bias) -> str:
+        link = self.ipfs.save_global_bias(bias)
+        return link
 
     def __check_ZKP_aggregator(self, proof):
         a = proof["proof"]["a"]
@@ -131,35 +188,38 @@ class OffChainAggregator:
 
     def select_devices(self, epsilon=1, select_count=3) -> list[str]:
 
-        inverse_mse_scores = {}
-        for device_id in self.stored_device_data:
-            # fetch mse score:
-            mse_score = self.stored_device_data[device_id][3]
-            # calculate inverse mse score:
-            inverse_score = 1 / (mse_score + epsilon)
-            # normalize the inverse score:
-            historical_selection_count = self.historical_selected_device_count.get(
-                device_id, 0
-            )
-            adjusted_score = inverse_score / (historical_selection_count + 1)
-            # save the adjusted score:
-            inverse_mse_scores[device_id] = adjusted_score
-
-        # select the top devices:
-        top_device_ids = sorted(
-            inverse_mse_scores, key=inverse_mse_scores.get, reverse=True
-        )[:select_count]
-
-        selected_device_ids = top_device_ids
-
-        # record in history the selected devices:
-        for selected_device_id in selected_device_ids:
-            if selected_device_id in self.historical_selected_device_count:
-                self.historical_selected_device_count[selected_device_id] += 1
-            else:
-                self.historical_selected_device_count[selected_device_id] = 1
-
+        selected_device_ids = list(self.stored_device_data.keys())
         return selected_device_ids
+
+        # inverse_mse_scores = {}
+        # for device_id in self.stored_device_data:
+        #     # fetch mse score:
+        #     mse_score = self.stored_device_data[device_id][3]
+        #     # calculate inverse mse score:
+        #     inverse_score = 1 / (mse_score + epsilon)
+        #     # normalize the inverse score:
+        #     historical_selection_count = self.historical_selected_device_count.get(
+        #         device_id, 0
+        #     )
+        #     adjusted_score = inverse_score / (historical_selection_count + 1)
+        #     # save the adjusted score:
+        #     inverse_mse_scores[device_id] = adjusted_score
+
+        # # select the top devices:
+        # top_device_ids = sorted(
+        #     inverse_mse_scores, key=inverse_mse_scores.get, reverse=True
+        # )[:select_count]
+
+        # selected_device_ids = top_device_ids
+
+        # # record in history the selected devices:
+        # for selected_device_id in selected_device_ids:
+        #     if selected_device_id in self.historical_selected_device_count:
+        #         self.historical_selected_device_count[selected_device_id] += 1
+        #     else:
+        #         self.historical_selected_device_count[selected_device_id] = 1
+
+        # return selected_device_ids
 
     def calculate_moving_average(self) -> tuple:
         selected_weights = [device[1] for device in self.selected_device_data.values()]
@@ -200,12 +260,53 @@ class OffChainAggregator:
         aggregator_zokrates_base = (
             self.config["DEFAULT"]["ZokratesBase"] + "aggregator/"
         )
-        w, _ = convert_matrix(self.new_global_weights)
-        b, _ = convert_matrix(self.new_global_bias)
-        digest = mimc_hash(w=w, b=b)
+
+        # convert local_w and local_b to a single list:
+        local_w_list = []
+        local_b_list = []
+        for selected_device_id in self.selected_device_data:
+            # weights:
+            device_w = self.selected_device_data[selected_device_id][1]
+            local_w_list.append(device_w)
+            # bias:
+            device_b = self.selected_device_data[selected_device_id][2]
+            local_b_list.append(device_b)
+        local_w, local_w_sign = convert_matrix(local_w_list)
+        local_b, local_b_sign = convert_matrix(local_b_list)
+        # convert global_w and global_b to a single list:
+        global_w, global_w_sign = convert_matrix(self.global_w)
+        global_b, global_b_sign = convert_matrix(self.global_b)
+        # aggregator hash:
+        ag_hash = []
+        for selected_device_id in self.selected_device_data:
+            wb_hash = self.selected_device_data[selected_device_id][0]
+            ag_hash.append(wb_hash)
+        sc_hash = ag_hash  # TODO: change after client selection
+        # expected global weights and bias:
+        expected_global_w, expected_global_w_sign = convert_matrix(
+            self.new_global_weights
+        )
+        expected_global_b, expected_global_b_sign = convert_matrix(
+            self.new_global_weights
+        )
+        # digest:
+        digest = mimc_hash(w=local_w, b=device_b)
+
         args = [
-            w,
-            b,
+            local_w,
+            local_w_sign,
+            local_b,
+            local_b_sign,
+            global_w,
+            global_w_sign,
+            global_b,
+            global_b_sign,
+            sc_hash,
+            ag_hash,
+            expected_global_w,
+            expected_global_b,
+            expected_global_w_sign,
+            expected_global_b_sign,
             digest,
         ]
         out_path = aggregator_zokrates_base + "out"
@@ -250,10 +351,15 @@ class OffChainAggregator:
         self.new_generated_proof = ""
 
     def start_round(self):
+        # set global weights and bias:
+        if self.new_global_weights:
+            self.global_w = self.new_global_weights
+        if self.new_global_bias:
+            self.global_b = self.new_global_bias
         # clear the parameters for the new round:
         self.clear_round()
         # fetch the round number from the smart contract:
-        self.round_number = self.fetch_sc_round_number()
+        self.round_number = self.get_sc_round_number()
 
     def finish_round(self):
         # select devices:
@@ -265,7 +371,7 @@ class OffChainAggregator:
         # generate the proof:
         # self.new_generated_proof = self.generate_proof()  # TODO
         # send the calculated global weights and bias to the smart contract:
-        self._send_aggregator_wb()
+        self._send_aggregator_wb_link()
 
 
 # endregion

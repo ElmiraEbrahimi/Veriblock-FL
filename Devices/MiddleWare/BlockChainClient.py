@@ -6,6 +6,7 @@ from web3 import Web3
 import json
 
 from MiddleWare.aggregator.aggregator import Device, OffChainAggregator
+from MiddleWare.aggregator.ipfs import IPFSConnector
 
 
 class BlockChainConnection:
@@ -18,7 +19,13 @@ class BlockChainConnection:
         self.lock_newRound = threading.Lock()
         self.precision = None
         self.participant_count = participant_count
+
         self.aggregator = None
+        self.init_w = None
+        self.init_b = None
+        self.ipfs = IPFSConnector()
+        self.weight_ipfs_link = ""
+        self.bias_ipfs_link = ""
 
     def connect(self):
         self.web3Connection = Web3(
@@ -37,6 +44,9 @@ class BlockChainConnection:
         self.aggregator = OffChainAggregator(
             blockchain_connection=self,
             blockchain_account=self.web3Connection.eth.accounts[self.participant_count],
+            ipfs=self.ipfs,
+            global_w=self.init_w,
+            global_b=self.init_b,
         )
         # aggregator start round:
         self.aggregator.start_round()
@@ -62,6 +72,12 @@ class BlockChainConnection:
             )
             weights = [[int(x) for x in y] for y in weights]
             bias = [int(x) for x in bias]
+
+            self.init_w = weights
+            self.init_b = bias
+            self.weight_ipfs_link = self.ipfs.save_global_weight(weights)
+            self.bias_ipfs_link = self.ipfs.save_global_bias(bias)
+
             thxHash = self.FLcontractDeployed.functions.initModel(
                 weights, bias
             ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
@@ -121,16 +137,18 @@ class BlockChainConnection:
         )
 
     def get_globalWeights(self, accountNR):
-        we = self.FLcontractDeployed.functions.get_global_weights().call(
-            {"from": self.web3Connection.eth.accounts[accountNR]}
-        )
-        return we
+        # we = self.FLcontractDeployed.functions.get_global_weights().call(
+        #     {"from": self.web3Connection.eth.accounts[accountNR]}
+        # )
+        # return we
+        return self.ipfs.get_global_weight(self.weight_ipfs_link)
 
     def get_globalBias(self, accountNR):
-        bias = self.FLcontractDeployed.functions.get_global_bias().call(
-            {"from": self.web3Connection.eth.accounts[accountNR]}
-        )
-        return bias
+        # bias = self.FLcontractDeployed.functions.get_global_bias().call(
+        #     {"from": self.web3Connection.eth.accounts[accountNR]}
+        # )
+        # return bias
+        return self.ipfs.get_global_bias(self.bias_ipfs_link)
 
     def get_account_balance(self, accountNR):
         return self.web3Connection.fromWei(
@@ -207,35 +225,36 @@ class BlockChainConnection:
         device.send_wb_to_aggregator()
 
     def __update_without_proof(self, weights, bias, accountNR):
-        weights = [[int(x) for x in y] for y in weights]
-        bias = [int(x) for x in bias]
-        thxHash = self.FLcontractDeployed.functions.update_without_proof(
-            weights, bias
-        ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
-        self.web3Connection.eth.waitForTransactionReceipt(thxHash)
-        events = self.FLcontractDeployed.events.RunMovingAverage().getLogs()
-        for event in events:
-            if str(event["args"].get("result")) == "100":  # run moving average:
-                # get current new temp_global_weights and temp_global_bias:
-                temp_global_weights, temp_global_bias, participating_devices = (
-                    self.FLcontractDeployed.functions.getTempGlobalAndParticipants().call()
-                )
-                # get new temp_global_weights and temp_global_bias:
-                # new_temp_global_weights, new_temp_global_bias = moving_average_all(
-                #     new_weights=weights,
-                #     new_bias=bias,
-                #     participant_count=participating_devices,
-                #     temp_global_weights=temp_global_weights,
-                #     temp_global_bias=temp_global_bias,
-                # )
-                # set new temp_global_weights and temp_global_bias:
-                thxHash = self.FLcontractDeployed.functions.setTempGlobal(
-                    new_temp_global_weights, new_temp_global_bias
-                ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
-                self.__await_Transaction(thxHash)
-                print(f"AccountNr = {accountNR}: UPDATE SUCCESSFUL")
-                return
-        print(f"AccountNr = {accountNR}: UPDATE FAILED. Trx: {str(thxHash)}")
+        pass
+        # weights = [[int(x) for x in y] for y in weights]
+        # bias = [int(x) for x in bias]
+        # thxHash = self.FLcontractDeployed.functions.update_without_proof(
+        #     weights, bias
+        # ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
+        # self.web3Connection.eth.waitForTransactionReceipt(thxHash)
+        # events = self.FLcontractDeployed.events.RunMovingAverage().getLogs()
+        # for event in events:
+        #     if str(event["args"].get("result")) == "100":  # run moving average:
+        #         # get current new temp_global_weights and temp_global_bias:
+        #         temp_global_weights, temp_global_bias, participating_devices = (
+        #             self.FLcontractDeployed.functions.getTempGlobalAndParticipants().call()
+        #         )
+        #         # get new temp_global_weights and temp_global_bias:
+        #         # new_temp_global_weights, new_temp_global_bias = moving_average_all(
+        #         #     new_weights=weights,
+        #         #     new_bias=bias,
+        #         #     participant_count=participating_devices,
+        #         #     temp_global_weights=temp_global_weights,
+        #         #     temp_global_bias=temp_global_bias,
+        #         # )
+        #         # set new temp_global_weights and temp_global_bias:
+        #         thxHash = self.FLcontractDeployed.functions.setTempGlobal(
+        #             new_temp_global_weights, new_temp_global_bias
+        #         ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
+        #         self.__await_Transaction(thxHash)
+        #         print(f"AccountNr = {accountNR}: UPDATE SUCCESSFUL")
+        #         return
+        # print(f"AccountNr = {accountNR}: UPDATE FAILED. Trx: {str(thxHash)}")
 
     def update(self, weights, bias, mse_score, accountNR, proof=None):
         if self.config["DEFAULT"]["PerformProof"]:

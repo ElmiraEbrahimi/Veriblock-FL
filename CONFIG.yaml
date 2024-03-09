@@ -30,10 +30,10 @@ DEFAULT:
   ResponseVariable: "Activity"
   EtheriumRPCServer: "http://127.0.0.1:8545"
   #change this when you compile the smart contract
-  FLContractAddress: "0xc491F6A4Fd89ba5C4794E05768c26924d17d4b85"
+  FLContractAddress: "0xdF430A71d0C1Ab7CBCA5D805594082aD18182c2c"
   #change this when you compile the smart contract
-  VerifierContractAddress: "0xeCBf0533B2535dE94bAeE28A953756957cdE8b38"
-  VerifierAggregatorContractAddress: "0x7f56107D520fFa9C52e31751bee6f13F9a87F6a4"
+  VerifierContractAddress: "0xfB687535304726B74dd44FB02922D67809142358"
+  VerifierAggregatorContractAddress: "0xb9C4de6270193a65E416296C7574ACe5baA78Ab5"
   ZokratesPath: 'Verification/ZoKrates/root.zok'
   # ZokratesPath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/ZoKrates/root.zok"
   VerificationBase: 'Verification/'

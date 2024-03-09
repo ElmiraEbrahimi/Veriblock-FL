@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
+
 import "./verifier.sol";
+import "./verifier_aggregator.sol";
+
 pragma experimental ABIEncoderV2;
 
 contract FederatedModel {
@@ -32,7 +34,10 @@ contract FederatedModel {
     uint256 private updateInterval;
     uint256 private batchSize;
     Verifier private verifier;
+    VerifierAggregator private verifier_aggregator;
     bool private initialized = false;
+    string public global_weights_ipfs_link = "";
+    string public global_bias_ipfs_link = "";
 
     constructor(
         uint256 id,
@@ -53,8 +58,12 @@ contract FederatedModel {
         round_Number = 1;
     }
 
-    function updateVerifier(address verifier_address) external {
+    function updateVerifier(
+        address verifier_address,
+        address verifier_aggregator_address
+    ) external {
         verifier = Verifier(verifier_address);
+        verifier_aggregator = VerifierAggregator(verifier_aggregator_address);
     }
 
     function initModel(
@@ -190,13 +199,24 @@ contract FederatedModel {
     //
     //
     //
-    function getTempGlobalAndParticipants() public view returns(int256[][] memory, int256[] memory, uint) {
-        return (temp_global_weights, temp_global_bias, participating_devices.length);
+    function getTempGlobalAndParticipants()
+        public
+        view
+        returns (int256[][] memory, int256[] memory, uint)
+    {
+        return (
+            temp_global_weights,
+            temp_global_bias,
+            participating_devices.length
+        );
     }
 
-    function setTempGlobal(int256[][] memory newWeights, int256[] memory newBias) external {
+    function setTempGlobal(
+        int256[][] memory newWeights,
+        int256[] memory newBias
+    ) external {
         temp_global_weights = newWeights;
-        temp_global_bias = newBias; 
+        temp_global_bias = newBias;
     }
 
     // region hash mapping
@@ -216,6 +236,10 @@ contract FederatedModel {
         return hashDynamicMapping[sender];
     }
 
+    function getAllHashKeys() public view returns (address[] memory) {
+        return hashKeys;
+    }
+
     function deleteAllHashValues() internal {
         for (uint i = 0; i < hashKeys.length; i++) {
             address key = hashKeys[i];
@@ -230,9 +254,9 @@ contract FederatedModel {
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[5] calldata input  // TODO: change inout size after hashing
+        uint[5] calldata input
     ) external TrainingMode {
-        require(this.checkZKP(a, b, c, input));
+        require(this.checkWBHashZKP(a, b, c, input));
         bool newUser = true;
         bool firstUser = true;
         address user = tx.origin;
@@ -252,9 +276,33 @@ contract FederatedModel {
         }
     }
 
-    function update_without_proof(
-        string memory wb_hash
+    function send_aggregator_wb(
+        string memory gw_ipfs_link,
+        string memory gb_ipfs_link,
+        uint[2] calldata a,
+        uint[2][2] calldata b,
+        uint[2] calldata c,
+        uint[14] calldata input
     ) external TrainingMode {
+        require(this.checkAggregatorZKP(a, b, c, input));
+        global_weights_ipfs_link = gw_ipfs_link;
+        global_bias_ipfs_link = gb_ipfs_link;
+        // this.setTempGlobal(newWeights, newBias);
+    }
+
+    function get_global_weights_ipfs_link()
+        external
+        view
+        returns (string memory)
+    {
+        return global_weights_ipfs_link;
+    }
+
+    function get_global_bias_ipfs_link() external view returns (string memory) {
+        return global_bias_ipfs_link;
+    }
+
+    function update_without_proof(string memory wb_hash) external TrainingMode {
         bool newUser = true;
         bool firstUser = true;
         address user = tx.origin;
@@ -362,11 +410,10 @@ contract FederatedModel {
         precision = newPrecision;
     }
 
-    function checkZKP(
+    function checkWBHashZKP(
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        //uint[183] memory input. we make it 64
         uint[5] memory input
     ) public returns (bool) {
         Verifier.Proof memory proof = Verifier.Proof(
@@ -375,6 +422,21 @@ contract FederatedModel {
             Pairing.G1Point(c[0], c[1])
         );
         return verifier.verifyTx(proof, input);
+    }
+
+    function checkAggregatorZKP(
+        uint[2] memory a,
+        uint[2][2] memory b,
+        uint[2] memory c,
+        uint[14] memory input
+    ) public returns (bool) {
+        VerifierAggregator.ProofAggregator memory proof = VerifierAggregator
+            .ProofAggregator(
+                PairingAggregator.G1PointAggregator(a[0], a[1]),
+                PairingAggregator.G2PointAggregator(b[0], b[1]),
+                PairingAggregator.G1PointAggregator(c[0], c[1])
+            );
+        return verifier_aggregator.verifyTx(proof, input);
     }
 
     function stopTraining() external onlyAdmin {
