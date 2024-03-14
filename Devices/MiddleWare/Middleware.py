@@ -236,7 +236,7 @@ class MiddleWare:
         self.batchSize = None
         self.round = 0
 
-    def __generate_Proof(self, w, b, w_new, b_new, x_train, y_train, learning_rate):
+    def __generate_Proof(self, w, b, w_new, b_new, x_train, y_train, learning_rate,ldigest):
         x_train = x_train * self.precision
         b_new = b_new.reshape(
             self.config["DEFAULT"]["OutputDimension"],
@@ -273,7 +273,8 @@ class MiddleWare:
         weights_new, _ = convert_matrix(w_new)
         bias_new, _ = convert_matrix(b_new)
         x, x_sign = convert_matrix(x_train)
-        digest = mimc_hash(global_weights, global_bias)
+        ldigest = mimc_hash(weights_new, bias_new)
+        sc_global_model_hash=....
         args = [
             global_weights,
             global_weights_sign,
@@ -286,7 +287,8 @@ class MiddleWare:
             self.precision,
             weights_new,
             bias_new,
-            digest,
+            ldigest,
+            sc_global_model_hash
         ]
         out_path = verification_base + "out"
         abi_path = verification_base + "abi.json"

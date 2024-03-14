@@ -290,7 +290,10 @@ class OffChainAggregator:
             self.new_global_weights
         )
         # digest:
-        digest = mimc_hash(w=local_w, b=device_b)
+        #digest = mimc_hash(w=local_w, b=device_b)
+        #where did you calculate expected_global_w and expected_global_b, 
+        #they must be the out put of avg function
+        gdigest = mimc_hash(expected_global_w, expected_global_b)
 
         args = [
             local_w,
@@ -301,13 +304,13 @@ class OffChainAggregator:
             global_w_sign,
             global_b,
             global_b_sign,
-            sc_hash,
-            ag_hash,
+            sc_hash,#must be fetch from smart contract
+            #ag_hash,
             expected_global_w,
             expected_global_b,
             expected_global_w_sign,
             expected_global_b_sign,
-            digest,
+            gdigest,
         ]
         out_path = aggregator_zokrates_base + "out"
         abi_path = aggregator_zokrates_base + "abi.json"
