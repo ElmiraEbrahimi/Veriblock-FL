@@ -204,8 +204,8 @@ def main(
     field mut pr,
     private field[ac][fe] mut w_new,
     private field[ac] mut b_new,
-    public field mut digest,
-    public field mut sc_global_params_hash
+    field mut ldigest,
+    field mut sc_global_model_hash
     ) -> bool {
     
     // output values from the forward propagation
@@ -278,10 +278,10 @@ def main(
 
     field mut gobal_hash_check =  mimc_hash(w, b, round_constants);
    
-    field mut is_current_hash_found = if sc_global_params_hash == gobal_hash_check { 1 } else {0};
+    field mut is_current_hash_found = if sc_global_model_hash == gobal_hash_check { 1 } else {0};
 
 
-    field mut result = if mimc_hash(w_new, b_new, round_constants) == digest {1} else {0};
+    field mut result = if mimc_hash(w_new, b_new, round_constants) == ldigest {1} else {0};
     return result == 1 && is_current_hash_found ==1;
 
 
