@@ -38,6 +38,7 @@ contract FederatedModel {
     bool private initialized = false;
     string public global_weights_ipfs_link = "";
     string public global_bias_ipfs_link = "";
+    string public weight_bias_hash = "";
 
     constructor(
         uint256 id,
@@ -254,7 +255,7 @@ contract FederatedModel {
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[5] calldata input
+        uint[4] calldata input
     ) external TrainingMode {
         require(this.checkWBHashZKP(a, b, c, input));
         bool newUser = true;
@@ -277,14 +278,16 @@ contract FederatedModel {
     }
 
     function send_aggregator_wb(
+        string memory wb_hash,
         string memory gw_ipfs_link,
         string memory gb_ipfs_link,
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[14] calldata input
+        uint[16] calldata input
     ) external TrainingMode {
         require(this.checkAggregatorZKP(a, b, c, input));
+        weight_bias_hash = wb_hash;
         global_weights_ipfs_link = gw_ipfs_link;
         global_bias_ipfs_link = gb_ipfs_link;
         // this.setTempGlobal(newWeights, newBias);
@@ -298,8 +301,8 @@ contract FederatedModel {
         return global_weights_ipfs_link;
     }
 
-    function get_global_bias_ipfs_link() external view returns (string memory) {
-        return global_bias_ipfs_link;
+    function get_weight_bias_hash() external view returns (string memory) {
+        return weight_bias_hash;
     }
 
     function update_without_proof(string memory wb_hash) external TrainingMode {
@@ -414,7 +417,7 @@ contract FederatedModel {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[5] memory input
+        uint[4] memory input
     ) public returns (bool) {
         Verifier.Proof memory proof = Verifier.Proof(
             Pairing.G1Point(a[0], a[1]),
@@ -428,7 +431,7 @@ contract FederatedModel {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[14] memory input
+        uint[16] memory input
     ) public returns (bool) {
         VerifierAggregator.ProofAggregator memory proof = VerifierAggregator
             .ProofAggregator(

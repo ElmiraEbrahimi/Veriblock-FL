@@ -68,7 +68,6 @@ class OffChainAggregator:
         blockchain_connection: object,
         blockchain_account: str,
         ipfs: object,
-        #fisrt round global parameters
         global_w: list[list[int]],
         global_b: list[int],
     ):
@@ -90,6 +89,7 @@ class OffChainAggregator:
         self.new_global_weights: list[list[int]] = []
         self.new_global_bias: list[int] = []
         self.new_generated_proof = ""
+        self.gdigest = ""
 
     # region smart contract functions
 
@@ -142,7 +142,7 @@ class OffChainAggregator:
         # send to smart contract:
         thxHash = (
             self.blockchain_connection.FLcontractDeployed.functions.send_aggregator_wb(
-                gw_ipfs_link, gb_ipfs_link, a, b, c, inputs
+                self.gdigest, gw_ipfs_link, gb_ipfs_link, a, b, c, inputs
             ).transact({"from": self.blockchain_account})
         )
         self.blockchain_connection.__await_Transaction(thxHash)
@@ -277,11 +277,10 @@ class OffChainAggregator:
         global_w, global_w_sign = convert_matrix(self.global_w)
         global_b, global_b_sign = convert_matrix(self.global_b)
         # aggregator hash:
-        ag_hash = []
+        sc_lhashes = []
         for selected_device_id in self.selected_device_data:
             wb_hash = self.selected_device_data[selected_device_id][0]
-            ag_hash.append(wb_hash)
-        sc_hash = ag_hash  # TODO: change after client selection
+            sc_lhashes.append(wb_hash)
         # expected global weights and bias:
         expected_global_w, expected_global_w_sign = convert_matrix(
             self.new_global_weights
@@ -289,11 +288,8 @@ class OffChainAggregator:
         expected_global_b, expected_global_b_sign = convert_matrix(
             self.new_global_weights
         )
-        # digest:
-        #digest = mimc_hash(w=local_w, b=device_b)
-        #where did you calculate expected_global_w and expected_global_b, 
-        #they must be the out put of avg function
-        gdigest = mimc_hash(expected_global_w, expected_global_b)
+        # set gdigest:
+        self.gdigest = mimc_hash(w=expected_global_w, b=expected_global_b)
 
         args = [
             local_w,
@@ -304,13 +300,12 @@ class OffChainAggregator:
             global_w_sign,
             global_b,
             global_b_sign,
-            sc_hash,#must be fetch from smart contract
-            #ag_hash,
+            sc_lhashes,
             expected_global_w,
             expected_global_b,
             expected_global_w_sign,
             expected_global_b_sign,
-            gdigest,
+            self.gdigest,
         ]
         out_path = aggregator_zokrates_base + "out"
         abi_path = aggregator_zokrates_base + "abi.json"
@@ -352,6 +347,7 @@ class OffChainAggregator:
         self.new_global_weights = [[]]
         self.new_global_bias = []
         self.new_generated_proof = ""
+        self.gdigest = ""
 
     def start_round(self):
         # set global weights and bias:
