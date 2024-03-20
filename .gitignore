@@ -675,3 +675,4 @@ Verification/ZoKrates/aggregator/out.r1cs
 Verification/ZoKrates/aggregator/verification.key
 Verification/ZoKrates/aggregator/proving.key
 .env
+.env

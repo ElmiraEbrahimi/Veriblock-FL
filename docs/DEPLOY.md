@@ -44,8 +44,8 @@ Visit: <https://ohmyz.sh/>
 
 - Install python3.9: `sudo apt install python3.9`
 - Change the default python to python3.9.
-- Install venv: `sudo apt install python3-venv`
 - Check the version: `python -V`.
+- Install venv: `sudo apt install python3-venv`
 
 ### Docker
 

@@ -255,7 +255,7 @@ contract FederatedModel {
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[4] calldata input
+        uint[5] calldata input
     ) external TrainingMode {
         require(this.checkWBHashZKP(a, b, c, input));
         bool newUser = true;
@@ -284,7 +284,7 @@ contract FederatedModel {
         uint[2] calldata a,
         uint[2][2] calldata b,
         uint[2] calldata c,
-        uint[16] calldata input
+        uint[8] calldata input
     ) external TrainingMode {
         require(this.checkAggregatorZKP(a, b, c, input));
         weight_bias_hash = wb_hash;
@@ -417,7 +417,7 @@ contract FederatedModel {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[4] memory input
+        uint[5] memory input
     ) public returns (bool) {
         Verifier.Proof memory proof = Verifier.Proof(
             Pairing.G1Point(a[0], a[1]),
@@ -431,7 +431,7 @@ contract FederatedModel {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[16] memory input
+        uint[8] memory input
     ) public returns (bool) {
         VerifierAggregator.ProofAggregator memory proof = VerifierAggregator
             .ProofAggregator(
