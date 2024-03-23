@@ -54,7 +54,7 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 
 ### Ganache
 
-`docker run --platform linux/amd64 -d -p 8545:8545 trufflesuite/ganache:v7.0.0 --miner.blockGasLimit=0x1fffffffffffff  --chain.allowUnlimitedContractSize=true --wallet.defaultBalance 1000000000`
+      sudo docker run -d -p 8545:8545 trufflesuite/ganache:v7.0.0 --miner.blockGasLimit=0x1fffffffffffff  --chain.allowUnlimitedContractSize=true --wallet.defaultBalance 1000000000
 
 ### Truffle
 
@@ -79,7 +79,7 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 
 ### RabbitMQ
 
-`docker run -d --name rabbitmq -p 5672:5672 -p 5673:5673 -p 15672:15672 rabbitmq:3-management`
+      sudo docker run -d --name rabbitmq -p 5672:5672 -p 5673:5673 -p 15672:15672 rabbitmq:3-management
 
 (panel is available at 127.0.0.1:15672, user:pass -> `guest:guest`)
 

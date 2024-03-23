@@ -241,6 +241,16 @@ contract FederatedModel {
         return hashKeys;
     }
 
+    function getAllHashValues() public view returns (string[] memory) {
+        uint size = hashKeys.length;
+        string[] memory ret = new string[](size);
+        for (uint i = 0; i < size; i++) {
+            address sender_hash = hashKeys[i];
+            ret[i] = getHashValue(sender_hash);
+        }
+        return ret;
+    }
+
     function deleteAllHashValues() internal {
         for (uint i = 0; i < hashKeys.length; i++) {
             address key = hashKeys[i];

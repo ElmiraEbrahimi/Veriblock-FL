@@ -1,9 +1,11 @@
 import threading
 import time
 
+from MiddleWare.aggregator.hash import mimc_hash
 import numpy as np
 from web3 import Web3
 import json
+import copy
 
 from MiddleWare.aggregator.aggregator import Device, OffChainAggregator
 from MiddleWare.aggregator.ipfs import IPFSConnector
@@ -40,18 +42,6 @@ class BlockChainConnection:
             address=self.FLcontractAddress, abi=self.FLcontractABI
         )
 
-        # init aggregator:
-        self.aggregator = OffChainAggregator(
-            blockchain_connection=self,
-            blockchain_account=self.web3Connection.eth.accounts[self.participant_count],
-            ipfs=self.ipfs,
-            global_w=self.init_w,
-            global_b=self.init_b,
-        )
-        # aggregator start round:
-        self.aggregator.start_round()
-        ######
-
     def init_contract(self, accountNR):
         if self.is_connected() and accountNR == 0:
             np.random.seed(4)
@@ -73,10 +63,10 @@ class BlockChainConnection:
             weights = [[int(x) for x in y] for y in weights]
             bias = [int(x) for x in bias]
 
-            self.init_w = weights
-            self.init_b = bias
+            self.init_w = copy.deepcopy(weights)
+            self.init_b = copy.deepcopy(bias)
             self.weight_ipfs_link = self.ipfs.save_global_weight(weights)
-            self.bias_ipfs_link = self.ipfs.save_global_bias(bias)
+            self.bias_ipfs_link = self.ipfs.save_global_bias(bias)            
 
             thxHash = self.FLcontractDeployed.functions.initModel(
                 weights, bias
@@ -88,9 +78,20 @@ class BlockChainConnection:
             self.__await_Transaction(thxHash)
             thxHash = self.FLcontractDeployed.functions.updateVerifier(
                 self.config["DEFAULT"]["VerifierContractAddress"],
-                self.config["DEFAULT"]["VerifierAggregatorContractAddress"]
+                self.config["DEFAULT"]["VerifierAggregatorContractAddress"],
             ).transact({"from": self.web3Connection.eth.accounts[0]})
             self.__await_Transaction(thxHash)
+            
+            # init aggregator:
+            print(f'Initializing aggregator... {self.init_w=}, {self.init_b=}')
+            self.aggregator = OffChainAggregator(
+                blockchain_connection=self,
+                blockchain_account=self.web3Connection.eth.accounts[self.participant_count],
+                ipfs=self.ipfs,
+                global_w=self.init_w,
+                global_b=self.init_b,
+            )
+            
 
     def __check_ZKP(self, proof, accountNR):
         a = proof["proof"]["a"]
@@ -160,10 +161,16 @@ class BlockChainConnection:
 
     def roundUpdateOutstanding(self, accountNR):
         self.lock_newRound.acquire()
+        ##### aggregator:
+        self.aggregator.start_round()
+        #####
         newround = self.FLcontractDeployed.functions.roundUpdateOutstanding().call(
             {"from": self.web3Connection.eth.accounts[accountNR]}
         )
         if not newround:
+            ###### aggregator:
+            self.aggregator.finish_round()
+            ######
             try:
                 txhash = self.FLcontractDeployed.functions.end_update_round().transact(
                     {"from": self.web3Connection.eth.accounts[accountNR]}
@@ -190,10 +197,6 @@ class BlockChainConnection:
         )
         if newround_refreshed and (not newround):
             print(f"AccountNr = {accountNR}: Round is finished starting new round =>")
-            # aggregator finish round:
-            self.aggregator.finish_round()
-            self.aggregator.start_round()
-            ######
             self.lock_newRound.release()
             return newround_refreshed
         else:
@@ -214,11 +217,13 @@ class BlockChainConnection:
 
         # # generate hash of local weight and local bias:
         # wb_hash = self.generate_hash(weights, bias, accountNR)
+        wb_hash = str(mimc_hash(weights, bias))
+
         # generate proof for the hash:
         a, b, c, inputs = self.__check_ZKP(proof, accountNR)
         # send to smart contract:
         thxHash = self.FLcontractDeployed.functions.send_wb_hash(
-            a, b, c, inputs
+            wb_hash, a, b, c, inputs
         ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
         self.web3Connection.eth.waitForTransactionReceipt(thxHash)
         # send w,b to aggregator:
@@ -263,10 +268,10 @@ class BlockChainConnection:
                 try:
                     self.__send_wb_hash(weights, bias, mse_score, accountNR, proof)
                     tries = -1
-                except:
+                except Exception as err:
                     time.sleep(self.config["DEFAULT"]["WaitingTime"])
                     if tries == 1:
-                        print(f"AccountNr = {accountNR}: Update Failed")
+                        print(f"AccountNr = {accountNR}: Update Failed: {str(err)=}")
                     tries -= 1
         else:
             tries = 5
@@ -293,3 +298,13 @@ class BlockChainConnection:
     def get_Precision(self, accountNR):
         self.precision = self.__get_Precision(accountNR)
         return self.precision
+
+    def get_accounts_gas_usage(self) -> dict[str, float]:
+        accounts = self.web3Connection.eth.accounts
+        # print("Ganache Accounts:", accounts)
+        res = {}
+        for account in accounts:
+            gas_used = self.web3Connection.eth.getTransactionCount(account)
+            res[account] = gas_used
+
+        return res

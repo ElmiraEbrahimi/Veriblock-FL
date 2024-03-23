@@ -74,3 +74,12 @@ Visit: <https://docs.docker.com/engine/install/ubuntu/>
 - Create a new remote from the extension and connect to the server.
 
 Done!
+
+
+## Enable Swap (Optional)
+
+    sudo swapoff -a
+    sudo dd if=/dev/zero of=/swapfile bs=8G count=8
+    sudo chmod 0600 /swapfile
+    sudo mkswap /swapfile  # Set up a Linux swap area
+    sudo swapon /swapfile  # Turn the swap on

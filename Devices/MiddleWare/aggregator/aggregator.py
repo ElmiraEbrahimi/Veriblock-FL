@@ -1,11 +1,52 @@
 import json
 import subprocess
 from typing import Optional
+import copy
 
 import numpy as np
 from web3 import Web3
 
 from MiddleWare.aggregator.hash import mimc_hash
+
+
+def moving_average_weights(
+    local_weights: dict, participant_count: int, expected_weights: dict
+) -> dict:
+    k = participant_count
+    if k > 0:
+        if k == 1:
+            for i in range(len(local_weights)):
+                expected_weights[i] = local_weights[i]
+        else:
+            for i in range(len(local_weights)):
+                res = [[]]
+                row_new = local_weights[i]
+                row_old = expected_weights[i]
+
+                for j in range(len(row_old)):
+                    res[j] = row_old[j] + (row_new[j] - row_old[j]) / k
+
+                expected_weights[i] = res
+
+    return expected_weights
+
+
+def moving_average_bias(  # FIXME
+    local_bias: dict, participant_count: int, expected_bias: dict
+) -> dict:
+    k = participant_count
+    if k > 0:
+        if k == 1:
+            for i in range(len(local_bias)):
+                expected_bias[i] = local_bias[i]
+        else:
+            for i in range(len(local_bias)):
+                old_bias_i = expected_bias[i]
+                new_bias_i = local_bias[i]
+                res = old_bias_i + (new_bias_i - old_bias_i) / k
+                expected_bias[i] = res
+
+    return expected_bias
 
 
 # region device (node-manager)
@@ -27,7 +68,7 @@ class Device:
         self.weights = weights
         self.bias = bias
         self.mse_score = mse_score
-        self.wb_hash = self.generate_wb_hash(w=self.weights, b=self.bias)
+        self.wb_hash = str(self.generate_wb_hash(w=self.weights, b=self.bias))
 
     def __eq__(self, __value: object) -> bool:
         return self.address == __value.address
@@ -46,14 +87,6 @@ class Device:
             b=self.bias,
             mse_score=self.mse_score,
         )
-
-    def send_wb_hash_to_smart_contract(self) -> bool:
-        thxHash = self.blockchain_connection.FLcontractDeployed.functions.setHashValue(
-            self.address, self.wb_hash
-        ).transact({"from": self.address})
-        self.blockchain_connection.__await_Transaction(thxHash)
-
-        return True
 
 
 # endregion
@@ -75,6 +108,7 @@ class OffChainAggregator:
         self.blockchain_account = blockchain_account
         self.ipfs = ipfs
         self.round_number: int = 0
+        self.is_round_ongoing = False
         self.historical_selected_device_count: dict[str, int] = {}
         # address: [wb_hash, w, b, mse_score]
         self.stored_device_data: dict[
@@ -86,8 +120,8 @@ class OffChainAggregator:
         self.global_b: list[int] = global_b
         # current round:
         self.selected_device_data: dict[str, list[list[int], list[int], float]] = {}
-        self.new_global_weights: list[list[int]] = []
-        self.new_global_bias: list[int] = []
+        self.new_global_weights: list[list[int]] = self.global_w
+        self.new_global_bias: list[int] = self.global_b
         self.new_generated_proof = ""
         self.gdigest = ""
 
@@ -127,12 +161,16 @@ class OffChainAggregator:
     #     return global_bias
 
     def is_wb_hash_in_sc(self, wb_hash: str) -> bool:
-        wb_hashes = self.blockchain_connection.FLcontractDeployed.functions.getAllHashKeys().call(
+        wb_hashes = self.blockchain_connection.FLcontractDeployed.functions.getAllHashValues().call(
             {"from": self.blockchain_account}
         )
-        return wb_hash in wb_hashes
+        print(f"Checking {wb_hash=} in {wb_hashes=}")
+        return str(wb_hash) in wb_hashes
 
     def _send_aggregator_wb_link(self) -> bool:
+        print(
+            f"calling function __check_ZKP_aggregator with arg {self.new_generated_proof=}"
+        )
         a, b, c, inputs = self.__check_ZKP_aggregator(self.new_generated_proof)
 
         # save to ipfs:
@@ -150,6 +188,8 @@ class OffChainAggregator:
         # save to Blockchain Client:
         self.blockchain_connection.weight_ipfs_link = gw_ipfs_link
         self.blockchain_connection.bias_ipfs_link = gb_ipfs_link
+
+        print(f"Successfully sent: {gw_ipfs_link=}, {gb_ipfs_link=}")
 
         return True
 
@@ -178,7 +218,7 @@ class OffChainAggregator:
     def store_device_wb(
         self, device_id: str, w: list[list[list[int]]], b: list[int], mse_score: float
     ) -> bool:
-        wb_hash = mimc_hash(w=w, b=b)
+        wb_hash = str(mimc_hash(w=w, b=b))
         if not self.is_wb_hash_in_sc(wb_hash):
             # hash not in the smart contract:
             return False
@@ -224,12 +264,13 @@ class OffChainAggregator:
     def calculate_moving_average(self) -> tuple:
         selected_weights = [device[1] for device in self.selected_device_data.values()]
         selected_bias = [device[2] for device in self.selected_device_data.values()]
+        print(
+            f"Calling moving_average_weights: {len(selected_weights)=}, {self.global_w=}"
+        )
         new_w = moving_average_weights(
-            selected_weights, len(selected_weights), self.new_global_weights
+            selected_weights, len(selected_weights), self.global_w
         )
-        new_b = moving_average_bias(
-            selected_bias, len(selected_bias), self.new_global_bias
-        )
+        new_b = moving_average_bias(selected_bias, len(selected_bias), self.global_b)
         return new_w, new_b
 
     def generate_proof(self) -> str:
@@ -258,7 +299,7 @@ class OffChainAggregator:
 
         zokrates = "zokrates"
         aggregator_zokrates_base = (
-            self.config["DEFAULT"]["ZokratesBase"] + "aggregator/"
+            self.blockchain_connection.config["DEFAULT"]["ZokratesBase"] + "aggregator/"
         )
 
         # convert local_w and local_b to a single list:
@@ -279,7 +320,7 @@ class OffChainAggregator:
         # aggregator hash:
         sc_lhashes = []
         for selected_device_id in self.selected_device_data:
-            wb_hash = self.selected_device_data[selected_device_id][0]
+            wb_hash = int(self.selected_device_data[selected_device_id][0])
             sc_lhashes.append(wb_hash)
         # expected global weights and bias:
         expected_global_w, expected_global_w_sign = convert_matrix(
@@ -350,88 +391,38 @@ class OffChainAggregator:
         self.gdigest = ""
 
     def start_round(self):
+        if self.is_round_ongoing:
+            return
+        else:
+            print("Aggreagtor round now ongoing...")
+            self.is_round_ongoing = True
         # set global weights and bias:
         if self.new_global_weights:
-            self.global_w = self.new_global_weights
+            self.global_w = copy.deepcopy(self.new_global_weights)
         if self.new_global_bias:
-            self.global_b = self.new_global_bias
+            self.global_b = copy.deepcopy(self.new_global_bias)
         # clear the parameters for the new round:
         self.clear_round()
         # fetch the round number from the smart contract:
         self.round_number = self.get_sc_round_number()
 
     def finish_round(self):
+        if self.is_round_ongoing:
+            self.is_round_ongoing = False
+        print("Finishing aggregator round...")
         # select devices:
         selected_device_ids = self.select_devices()
         for device_id in selected_device_ids:
             self.selected_device_data[device_id] = self.stored_device_data[device_id]
         # calculate moving average:
+        print("Calculating moving averages...")
         self.new_global_weights, self.new_global_bias = self.calculate_moving_average()
         # generate the proof:
-        # self.new_generated_proof = self.generate_proof()  # TODO
+        print("Generating aggregator proof...")
+        self.new_generated_proof = self.generate_proof()
         # send the calculated global weights and bias to the smart contract:
+        print("Sending aggregator wb links to contract...")
         self._send_aggregator_wb_link()
 
 
 # endregion
-
-# moving average:
-
-
-def moving_average_weights(
-    new_weights: dict, participant_count: int, temp_global_weights: dict
-) -> dict:
-    k = participant_count
-    if k > 0:
-        if k == 1:
-            for i in range(len(new_weights)):
-                temp_global_weights[i] = new_weights[i]
-        else:
-            for i in range(len(new_weights)):
-                res = [0] * len(new_weights[i])
-                row_new = new_weights[i]
-                row_old = temp_global_weights[i]
-
-                for j in range(len(row_old)):
-                    res[j] = row_old[j] + (row_new[j] - row_old[j]) / k
-
-                temp_global_weights[i] = res
-
-    return temp_global_weights
-
-
-def moving_average_bias(
-    new_bias: dict, participant_count: int, temp_global_bias: dict
-) -> dict:
-    k = participant_count
-    if k > 0:
-        if k == 1:
-            for i in range(len(new_bias)):
-                temp_global_bias[i] = new_bias[i]
-        else:
-            for i in range(len(new_bias)):
-                old_bias_i = temp_global_bias[i]
-                new_bias_i = new_bias[i]
-                res = old_bias_i + (new_bias_i - old_bias_i) / k
-                temp_global_bias[i] = res
-
-    return temp_global_bias
-
-
-def moving_average_all(
-    new_weights: dict,
-    new_bias: dict,
-    participant_count: int,
-    temp_global_weights: dict,
-    temp_global_bias: dict,
-) -> dict:
-    # weights:
-    temp_global_weights = moving_average_weights(
-        new_weights, participant_count, temp_global_weights
-    )
-    # bias:
-    temp_global_bias = moving_average_bias(
-        new_bias, participant_count, temp_global_bias
-    )
-    # return new temp_global_weights and temp_global_bias
-    return temp_global_weights, temp_global_bias
