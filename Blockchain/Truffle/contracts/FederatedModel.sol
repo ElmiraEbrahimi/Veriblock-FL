@@ -149,17 +149,17 @@ contract FederatedModel {
     //
     function end_update_round() external {
         if (block.timestamp >= intervalEnd) {
-            for (uint256 i = 0; i < temp_global_weights.length; i++) {
-                int256[] memory temp = new int256[](
-                    temp_global_weights[i].length
-                );
-                temp = temp_global_weights[i];
-                global_weights[i] = temp;
-            }
-            for (uint256 i = 0; i < temp_global_bias.length; i++) {
-                int256 temp = temp_global_bias[i];
-                global_bias[i] = temp;
-            }
+            // for (uint256 i = 0; i < temp_global_weights.length; i++) {
+            //     int256[] memory temp = new int256[](
+            //         temp_global_weights[i].length
+            //     );
+            //     temp = temp_global_weights[i];
+            //     global_weights[i] = temp;
+            // }
+            // for (uint256 i = 0; i < temp_global_bias.length; i++) {
+            //     int256 temp = temp_global_bias[i];
+            //     global_bias[i] = temp;
+            // }
             intervalEnd = block.timestamp + updateInterval;
             delete participating_devices;
             round_Number = round_Number + 1;
@@ -403,7 +403,7 @@ contract FederatedModel {
         return batchSize;
     }
 
-    function getRoundNumber() external returns (uint256) {
+    function getRoundNumber() external view returns (uint256) {
         return round_Number;
     }
 

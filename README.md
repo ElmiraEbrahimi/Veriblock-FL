@@ -12,7 +12,8 @@
 
 Create & activate virtual env:
 
-`python3 -m venv venv && source venv/bin/activate`
+      python3 -m venv venv 
+      source venv/bin/activate
 
 Install python deps: `pip install -r requirements.txt`
 
@@ -67,14 +68,19 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 ##### via Docker
 
 - set `docker: true` in `Blockchain/Truffle/truffle-config.js` file.
-- `cd Blockchain/Truffle/`
-- `truffle compile`. (It will pull the required solc version from docker hub)
+- pull the required solc version from docker hub and compile:
+
+      cd Blockchain/Truffle/
+      sudo rm -rf build/contracts/*
+      sudo truffle compile
 
 #### Migrate
 
-- make sure ganache is running.
-- `cd Blockchain/Truffle/`
-- `truffle migrate`
+- make sure ganache is running and run (in Blockchain/Truffle/):
+
+      sudo truffle migrate
+      cd ...
+
 - copy contract addresses from the output for `FederatedModel` and `Verifier`, and paste them into `CONFIG.yaml` for `FLContractAddress` and `VerifierContractAddress` respectively.
 
 ### RabbitMQ
@@ -85,7 +91,7 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 
 ### Devices
 
-- download data (Daily and Sports Activities) from: <https://archive.ics.uci.edu/dataset/256/daily+and+sports+activities>
+ - download data (Daily and Sports Activities) from: <https://archive.ics.uci.edu/dataset/256/daily+and+sports+activities> 
 - check `Devices/Edge_Device/data/iot_data` exists.
 - run: `python Devices/Edge_Device/iot_data_merge_script.py`
 - make sure these folders/file are generated in `Devices/Edge_Device/data/`:
@@ -97,4 +103,6 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 
 ## Run
 
-Start devices: `python Devices/main.py`
+Start devices: 
+
+      python Devices/main.py

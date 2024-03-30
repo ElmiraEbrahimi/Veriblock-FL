@@ -67,9 +67,7 @@ ROUND_CONSTANTS = [
     3938980639125,
 ]
 
-SNARK_SCALAR_FIELD = (
-    21888242871839275222246405745257275088548364400416034343698204186575808495617
-)
+SNARK_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
 
 def convert_matrix(m):
@@ -110,19 +108,19 @@ def mimc(x, k, e=7, R=64):
         c_i = ROUND_CONSTANTS[i]
         # ensure the operation stays within field
         a = (x + k + c_i) % SNARK_SCALAR_FIELD
-        x = pow(a, e, SNARK_SCALAR_FIELD)
+        x = pow(a, e)        
+        x %= SNARK_SCALAR_FIELD
+
     # except Exception:
     #     raise Exception(f"{x=}, {k=}, {c_i=}, {e=}, {SNARK_SCALAR_FIELD=}")
     return (x + k) % SNARK_SCALAR_FIELD
 
 
 def mimc_hash(w: np.ndarray, b: np.ndarray, k=0, e=7, R=64):
-    global_weights, _ = convert_matrix(w)
-    global_bias, _ = convert_matrix(b)
-    for i in range(len(global_weights)):
-        for j in range(len(global_weights[i])):
-            k = mimc(global_weights[i][j], k, e, R)
-        k = mimc(global_bias[i], k, e, R)
+    for i in range(len(w)):
+        for j in range(len(w[i])):
+            k = mimc(w[i][j], k, e, R)
+        k = mimc(b[i], k, e, R)
 
     return k
 
