@@ -1,53 +1,65 @@
+import copy
 import json
 import subprocess
 from typing import Optional
-import copy
 
 import numpy as np
+from MiddleWare.hash import convert_matrix, mimc_hash
+from utils.utils import get_project_root_from_env
 from web3 import Web3
 
-from MiddleWare.aggregator.hash import mimc_hash
+SNARK_SCALAR_FIELD = (
+    21888242871839275222246405745257275088548364400416034343698204186575808495617
+)
 
 
 def moving_average_weights(
-    local_weights: dict, participant_count: int, expected_weights: dict
+    local_weights: dict, participant_count: int, global_weights: dict
 ) -> dict:
+    # Initialize new_weights with the same structure as global_weights
+    new_weights = [
+        [0 for _ in range(len(global_weights[0]))] for _ in range(len(global_weights))
+    ]
     k = participant_count
-    if k > 0:
-        if k == 1:
-            for i in range(len(local_weights)):
-                expected_weights[i] = local_weights[i]
-        else:
-            for i in range(len(local_weights)):
-                res = [[]]
-                row_new = local_weights[i]
-                row_old = expected_weights[i]
 
-                for j in range(len(row_old)):
-                    res[j] = row_old[j] + (row_new[j] - row_old[j]) / k
+    # Adjust weights based on the formula provided
+    for client in range(len(local_weights)):
+        for i in range(len(global_weights)):
+            for j in range(len(global_weights[i])):
+                tres = (local_weights[client][i][j] - global_weights[i][j]) / k
+                new_weights[i][j] = (new_weights[i][j] + tres) 
 
-                expected_weights[i] = res
+    # Apply the average adjustments to the global weights
+    for i in range(len(global_weights)):
+        for j in range(len(global_weights[i])):
+            new_weights[i][j] = (
+                new_weights[i][j] + global_weights[i][j]
+            ) 
 
-    return expected_weights
+    return new_weights
 
 
-def moving_average_bias(  # FIXME
-    local_bias: dict, participant_count: int, expected_bias: dict
+def moving_average_bias(
+    local_bias: dict, participant_count: int, global_bias: dict
 ) -> dict:
+    # Initialize new_bias with the same structure as global_bias
+    new_bias = [0 for _ in range(len(global_bias))]
     k = participant_count
-    if k > 0:
-        if k == 1:
-            for i in range(len(local_bias)):
-                expected_bias[i] = local_bias[i]
-        else:
-            for i in range(len(local_bias)):
-                old_bias_i = expected_bias[i]
-                new_bias_i = local_bias[i]
-                res = old_bias_i + (new_bias_i - old_bias_i) / k
-                expected_bias[i] = res
 
-    return expected_bias
+    # Adjust bias based on the formula provided
+    for client in range(len(local_bias)):
+        for i in range(len(global_bias)):
+            tres = (local_bias[client][i] - global_bias[i]) / k
+            new_bias[i] = (new_bias[i] + tres)
 
+    # Apply the average adjustments to the global bias
+    for i in range(len(global_bias)):
+        new_bias[i] = (new_bias[i] + global_bias[i]) 
+
+    return new_bias
+
+
+    
 
 # region device (node-manager)
 
@@ -77,7 +89,9 @@ class Device:
         return hash(self.address)
 
     def generate_wb_hash(self, w, b):
-        hash = mimc_hash(w=w, b=b)
+        w_c, _ = convert_matrix(w)
+        b_c, _ = convert_matrix(b)
+        hash = mimc_hash(w=w_c, b=b_c)
         return hash
 
     def send_wb_to_aggregator(self):
@@ -91,11 +105,10 @@ class Device:
 
 # endregion
 
-# region off-chain aggregator:
+# region off-chain aggregator:t
 
 
 class OffChainAggregator:
-
     def __init__(
         self,
         blockchain_connection: object,
@@ -124,6 +137,7 @@ class OffChainAggregator:
         self.new_global_bias: list[int] = self.global_b
         self.new_generated_proof = ""
         self.gdigest = ""
+        self.precision = 10000  # Precision value for scaling
 
     # region smart contract functions
 
@@ -164,8 +178,18 @@ class OffChainAggregator:
         wb_hashes = self.blockchain_connection.FLcontractDeployed.functions.getAllHashValues().call(
             {"from": self.blockchain_account}
         )
-        print(f"Checking {wb_hash=} in {wb_hashes=}")
+        print(f"Checking {wb_hash=} in wb_hashes...")
         return str(wb_hash) in wb_hashes
+
+    # def get_all_hashes_as_integers_from_contract(self) -> list[int]:
+    #     try:
+    #         all_hashes_str = self.blockchain_connection.FLcontractDeployed.functions.getAllHashValues().call()
+    #         all_hashes_int = [int(h) for h in all_hashes_str]  # Assuming the hashes are hexadecimal strings
+    #         print("All hashes have been retrieved and converted to integers.")
+    #         return all_hashes_int
+    #     except Exception as e:
+    #         print(f"Failed to retrieve or convert hashes: {e}")
+    #         return []
 
     def _send_aggregator_wb_link(self) -> bool:
         print(
@@ -180,10 +204,12 @@ class OffChainAggregator:
         # send to smart contract:
         thxHash = (
             self.blockchain_connection.FLcontractDeployed.functions.send_aggregator_wb(
-                self.gdigest, gw_ipfs_link, gb_ipfs_link, a, b, c, inputs
+                str(self.gdigest), gw_ipfs_link, gb_ipfs_link, a, b, c, inputs
             ).transact({"from": self.blockchain_account})
         )
-        self.blockchain_connection.__await_Transaction(thxHash)
+        self.blockchain_connection.web3Connection.eth.wait_for_transaction_receipt(
+            thxHash
+        )
 
         # save to Blockchain Client:
         self.blockchain_connection.weight_ipfs_link = gw_ipfs_link
@@ -218,16 +244,19 @@ class OffChainAggregator:
     def store_device_wb(
         self, device_id: str, w: list[list[list[int]]], b: list[int], mse_score: float
     ) -> bool:
-        wb_hash = str(mimc_hash(w=w, b=b))
+        w_c, _ = convert_matrix(w)
+        b_c, _ = convert_matrix(b)
+        wb_hash = str(mimc_hash(w=w_c, b=b_c))
         if not self.is_wb_hash_in_sc(wb_hash):
             # hash not in the smart contract:
             return False
         # hash is in smart contract:
-        self.stored_device_data[device_id] = [wb_hash, w, b, mse_score]
+        print(f"The hash {wb_hash} was found in the smart contract.")
+        wb_hash_int = int(wb_hash)
+        self.stored_device_data[device_id] = [wb_hash_int, w, b, mse_score]
         return True
 
     def select_devices(self, epsilon=1, select_count=3) -> list[str]:
-
         selected_device_ids = list(self.stored_device_data.keys())
         return selected_device_ids
 
@@ -264,32 +293,55 @@ class OffChainAggregator:
     def calculate_moving_average(self) -> tuple:
         selected_weights = [device[1] for device in self.selected_device_data.values()]
         selected_bias = [device[2] for device in self.selected_device_data.values()]
-        print(
-            f"Calling moving_average_weights: {len(selected_weights)=}, {self.global_w=}"
-        )
         new_w = moving_average_weights(
             selected_weights, len(selected_weights), self.global_w
         )
         new_b = moving_average_bias(selected_bias, len(selected_bias), self.global_b)
-        return new_w, new_b
+        return copy.deepcopy(new_w), copy.deepcopy(new_b)
+
+    # def generate_proof(self) -> str:
+    #     def args_parser(args):
+    #         res = ""
+    #         for arg in range(len(args)):
+    #             entry = args[arg]
+    #             if isinstance(entry, (list, np.ndarray)):
+    #                 for i in range(len(entry)):
+    #                     row_i = entry[i]
+    #                     if isinstance(row_i, (list, np.ndarray)):
+    #                         for j in range(len(row_i)):
+    #                             val = row_i[j]
+    #                             res += str(val) + " "
+    #                     else:
+    #                         res += str(row_i) + " "
+    #             else:
+    #                 res += str(args[arg]) + " "
+    #         res = res[:-1]
+    #         return res
 
     def generate_proof(self) -> str:
         def args_parser(args):
             res = ""
-            for arg in range(len(args)):
-                entry = args[arg]
-                if isinstance(entry, (list, np.ndarray)):
-                    for i in range(len(entry)):
-                        row_i = entry[i]
-                        if isinstance(row_i, (list, np.ndarray)):
-                            for j in range(len(row_i)):
-                                val = row_i[j]
-                                res += str(val) + " "
-                        else:
-                            res += str(row_i) + " "
+            for arg in args:
+                if isinstance(arg, (list, np.ndarray)):
+                    flattened_arg = np.ravel(arg)  # Flatten the array
+                    print(f"args_parser - Size of flattened_arg: {flattened_arg.size}")
+                    for sub_arg in flattened_arg:  # Flatten the array
+                        # Remove potential newline and carriage return characters
+                        clean_sub_arg = (
+                            str(sub_arg).strip().replace("\n", "").replace("\r", "")
+                        )
+                        # Debug print to check each argument
+                        # print(f"Processed arg: {clean_sub_arg}")
+                        res += clean_sub_arg + " "
                 else:
-                    res += str(args[arg]) + " "
-            res = res[:-1]
+                    clean_arg = str(arg).strip().replace("\n", "").replace("\r", "")
+                    # Debug print to check each argument
+                    print(f"Processed arg: {clean_arg}")
+                    res += clean_arg + " "
+            res = res.strip()
+            # Final debug print to check the entire argument string
+            print(f"Final argument string for ZoKrates: {res}")
+            print(f"Length of the final argument string: {len(res)}")
             return res
 
         def convert_matrix(m):
@@ -297,9 +349,19 @@ class OffChainAggregator:
             m = np.array(m)
             return np.where(m < 0, max_field + m, m), np.where(m > 0, 0, 1)
 
+        def convert_matrix_and_scale(m):
+            max_field = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+            m = np.array(m) * self.precision  # Scale by precision
+            m = m.astype(int)  # Convert to integer immediately
+            m = np.where(m < 0, max_field + m, m)  # Adjust negative values
+            sign_matrix = np.where(m > 0, 0, 1)  # Create a sign matrix
+            return m, sign_matrix
+
         zokrates = "zokrates"
         aggregator_zokrates_base = (
-            self.blockchain_connection.config["DEFAULT"]["ZokratesBase"] + "aggregator/"
+            get_project_root_from_env()
+            + self.blockchain_connection.config["DEFAULT"]["ZokratesBase"]
+            + "aggregator/"
         )
 
         # convert local_w and local_b to a single list:
@@ -307,28 +369,39 @@ class OffChainAggregator:
         local_b_list = []
         for selected_device_id in self.selected_device_data:
             # weights:
-            device_w = self.selected_device_data[selected_device_id][1]
+            device_w = copy.deepcopy(self.selected_device_data[selected_device_id][1])
             local_w_list.append(device_w)
             # bias:
-            device_b = self.selected_device_data[selected_device_id][2]
+            device_b = copy.deepcopy(self.selected_device_data[selected_device_id][2])
             local_b_list.append(device_b)
+
         local_w, local_w_sign = convert_matrix(local_w_list)
         local_b, local_b_sign = convert_matrix(local_b_list)
         # convert global_w and global_b to a single list:
         global_w, global_w_sign = convert_matrix(self.global_w)
         global_b, global_b_sign = convert_matrix(self.global_b)
         # aggregator hash:
+
         sc_lhashes = []
+        # sc_lhashes= self.get_all_hashes_as_integers_from_contract()
         for selected_device_id in self.selected_device_data:
-            wb_hash = int(self.selected_device_data[selected_device_id][0])
+            wb_hash = self.selected_device_data[selected_device_id][0]
+            print(f"{wb_hash=}")
+            # int_wb_hash = int(wb_hash)
+            # sc_lhashes.append(int_wb_hash)
             sc_lhashes.append(wb_hash)
+            # Print out the contents and types of sc_lhashes
+            # print("Contents of sc_lhashes:", sc_lhashes)
+            # print("Types of elements in sc_lhashes:", [type(h) for h in sc_lhashes])
+        # sc_lhashes, _ = convert_matrix_and_scale(sc_lhashes)  # TODO ?  we shouldn't convert the hash. am I right?
+        # I got the error: Too many values to unpack. so I removed the below line
+        # sc_lhashes, _ = sc_lhashes  # TODO ? # what is this TODO for . we can remove this line
+
         # expected global weights and bias:
-        expected_global_w, expected_global_w_sign = convert_matrix(
+        expected_global_w, expected_global_w_sign = convert_matrix_and_scale(
             self.new_global_weights
         )
-        expected_global_b, expected_global_b_sign = convert_matrix(
-            self.new_global_weights
-        )
+        expected_global_b, expected_global_b_sign = convert_matrix_and_scale(self.new_global_bias)
         # set gdigest:
         self.gdigest = mimc_hash(w=expected_global_w, b=expected_global_b)
 
@@ -343,8 +416,8 @@ class OffChainAggregator:
             global_b_sign,
             sc_lhashes,
             expected_global_w,
-            expected_global_b,
             expected_global_w_sign,
+            expected_global_b,
             expected_global_b_sign,
             self.gdigest,
         ]
@@ -364,6 +437,19 @@ class OffChainAggregator:
         ]
         zokrates_compute_witness.extend(args_parser(args).split(" "))
         g = subprocess.run(zokrates_compute_witness, capture_output=True)
+        # print(f"{args=}")
+        # print(f"{g.stdout=}")
+        # print(f"{g.stderr=}")
+        # g = subprocess.run(
+        #     zokrates_compute_witness, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        # )
+        # print("STDOUT:", g.stdout.decode())
+        # print("STDERR:", g.stderr.decode())
+        # if g.returncode != 0:
+        #     # Handle the error, e.g., by raising an exception or logging the error
+        #     print("Error in running ZoKrates compute-witness.")
+        #     raise Exception(f"ZoKrates compute-witness error: {g.stderr.decode()}")
+
         proof_path = aggregator_zokrates_base + "proof_aggregator"
         proving_key_path = aggregator_zokrates_base + "proving.key"
         zokrates_generate_proof = [
@@ -379,8 +465,10 @@ class OffChainAggregator:
             proof_path,
         ]
         g = subprocess.run(zokrates_generate_proof, capture_output=True)
+        proof = None
         with open(proof_path, "r+") as f:
-            self.new_generated_proof = json.load(f)
+            proof = json.load(f)
+        return proof
 
     def clear_round(self):
         self.stored_device_data = {}
@@ -407,22 +495,33 @@ class OffChainAggregator:
         self.round_number = self.get_sc_round_number()
 
     def finish_round(self):
-        if self.is_round_ongoing:
-            self.is_round_ongoing = False
         print("Finishing aggregator round...")
         # select devices:
         selected_device_ids = self.select_devices()
         for device_id in selected_device_ids:
             self.selected_device_data[device_id] = self.stored_device_data[device_id]
-        # calculate moving average:
-        print("Calculating moving averages...")
-        self.new_global_weights, self.new_global_bias = self.calculate_moving_average()
-        # generate the proof:
-        print("Generating aggregator proof...")
-        self.new_generated_proof = self.generate_proof()
-        # send the calculated global weights and bias to the smart contract:
-        print("Sending aggregator wb links to contract...")
-        self._send_aggregator_wb_link()
+
+        participant_count = len(self.selected_device_data)
+        if participant_count >= 1:
+            # calculate moving average:
+            print("Calculating moving averages...")
+            self.new_global_weights, self.new_global_bias = (
+                self.calculate_moving_average()
+            )
+            # generate the proof:
+            print("Generating aggregator proof...")
+            self.new_generated_proof = self.generate_proof()
+            # send the calculated global weights and bias to the smart contract:
+            print("Sending aggregator wb links to contract...")
+            self._send_aggregator_wb_link()
+        else:
+            print(
+                "No participant found for aggregator to process. Skipping this round..."
+            )
+
+        # release lock:
+        if self.is_round_ongoing:
+            self.is_round_ongoing = False
 
 
 # endregion
