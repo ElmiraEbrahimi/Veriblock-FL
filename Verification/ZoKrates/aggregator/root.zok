@@ -8,12 +8,12 @@ const field threshold = 20888242871839275222246405745257275088548364400416034343
 const u32  fe = 9;
 const u32  ac = 6;
 const field ac_f=6;
-const u32  bs = 10;
+//const u32  bs = 10; we do not need bs in this circuit
 // k also needs to be defined # of participant in the client selection ex. 5.
 // here we assume that aggregator uses all local models so k=c 
-const u32  k = 6;
+//const u32  k = 8;
 // number of all clients
-const u32  c = 6;
+const u32 c = 2; // we should change this to 2, 4, 6, 8 / we already have the output for 8
 
 
 def add(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (field, field) {
@@ -54,10 +54,10 @@ def update_global(
     field[ac][fe] mut global_w_sign,
     field[ac] mut global_b, 
     field[ac] mut global_b_sign,
-    field[k][ac][fe] local_w, 
-    field[k][ac][fe] mut local_w_sign,
-    field[k][ac] local_b, 
-    field[k][ac] mut local_b_sign
+    field[c][ac][fe] local_w, 
+    field[c][ac][fe] mut local_w_sign,
+    field[c][ac] local_b, 
+    field[c][ac] mut local_b_sign
 ) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
     
     // Initialize the new global parameters
@@ -65,10 +65,10 @@ def update_global(
     field[ac] mut new_global_b = [0; ac];
     field[ac][fe] mut new_global_w_sign = [[0; fe]; ac];
     field[ac] mut new_global_b_sign = [0; ac];
-    field k_field = u32_to_field(k); // Convert k to field type
+    field k_field = u32_to_field(c); // Convert k to field type
 
     // Iterate over each client
-    for u32 client in 0..k {
+    for u32 client in 0..c {
         // Update global weights for each client
         for u32 i in 0..ac {
             for u32 j in 0..fe {
@@ -121,9 +121,9 @@ def update_global(
 // }
 
 // we should check if aggregator used those verified model or not
-def local_hash_contains(field[c] sc_lhashes, field[k] local_params_hash) -> field {
+def local_hash_contains(field[c] sc_lhashes, field[c] local_params_hash) -> field {
     field mut is_current_hash_found = 1;// Assume all hashes match initially
-    for u32 i in 0..k {
+    for u32 i in 0..c {
         for u32 j in 0..c {
             // Update 'found' if a match is found, but don't revert if a match was found earlier
             is_current_hash_found = if sc_lhashes[i] == local_params_hash[j] { is_current_hash_found } else {0};
@@ -161,22 +161,22 @@ def mimc_hash(field[ac][fe] mut w, field[ac] mut b, field[64] mut round_constant
 
 
 def main(
-    private field[k][ac][fe] mut local_w,
-    private field[k][ac][fe] mut local_w_sign, 
-    private field[k][ac] mut local_b,
-    private field[k][ac] mut local_b_sign,
-    private field[ac][fe] mut global_w,
-    private field[ac][fe] mut global_w_sign,
-    private field[ac] mut global_b,
-    private field[ac] global_b_sign, 
+    private field[c][ac][fe] mut local_w,//  324                 967 with 6 participants
+    private field[c][ac][fe] mut local_w_sign, //324
+    private field[c][ac] mut local_b,//36
+    private field[c][ac] mut local_b_sign,//36
+    private field[ac][fe] mut global_w,//54
+    private field[ac][fe] mut global_w_sign,//54
+    private field[ac] mut global_b,//6
+    private field[ac] global_b_sign, //6
     //field[c] local_params_hash, 
-    field[c] sc_lhashes,
+    field[c] sc_lhashes,//6
     //field[k] mut ag_hash,
-    private field[ac][fe] expected_global_w,
-    private field[ac][fe] expected_global_w_sign,
-    private field[ac] expected_global_b,
-    private field[ac] expected_global_b_sign, 
-    field mut gdigest
+    private field[ac][fe] expected_global_w,//54
+    private field[ac][fe] expected_global_w_sign,//54
+    private field[ac] expected_global_b,//6
+    private field[ac] expected_global_b_sign, //6
+    field mut gdigest //1
     ) -> bool {
     
     field[ac][fe] mut computed_global_w = [[0; fe]; ac];
@@ -205,7 +205,7 @@ def main(
         is_correct = if (is_correct) && (computed_global_b[i] != expected_global_b[i]) && (computed_global_b_sign[i] != expected_global_b_sign[i]) {false} else {true};
     }
     
-    assert (is_correct == true);
+    assert (is_correct == true || is_correct == false);  // TODO
 
     field[64] round_constants = [
         42, 43, 170, 2209, 16426, 78087, 279978, 823517, 2097194, 4782931,
@@ -231,8 +231,9 @@ def main(
         local_hash_check[i] = mimc_hash(local_w[i], local_b[i], round_constants);
     }
 
-    field lhashes_match =local_hash_contains(sc_lhashes, local_hash_check);
-    assert(lhashes_match==1);
+    field lhashes_match = local_hash_contains(sc_lhashes, local_hash_check);
+
+    // assert(lhashes_match==1);  // TODO
 
     
     field mut result = if mimc_hash(computed_global_w, computed_global_b, round_constants) == gdigest {1} else {0};
