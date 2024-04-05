@@ -7,23 +7,9 @@ const yaml = require('js-yaml');
 
 module.exports = function (deployer) {
   let fileContents = fs.readFileSync('../../CONFIG.yaml', 'utf8');
-
-  //let fileContents = fs.readFileSync('/D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/CONFIG.yaml', 'utf8');
- //const fs = require('fs');
- //const configPath = 'D:\\Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations\\CONFIG.yaml';
- //const fileContents = fs.readFileSync(configPath, 'utf8');
- let etherToSend = "1"; // Sending 1 Ether as an example
-  
   let data = yaml.load(fileContents);
-
   deployer.deploy(Migrations);
-  deployer.deploy(FederatedModel, data.DEFAULT.InputDimension, data.DEFAULT.OutputDimension, data.DEFAULT.LearningRate, data.DEFAULT.Precision, data.DEFAULT.BatchSize, data.DEFAULT.IntervalTime,
-      {
-          value: web3.utils.toWei(etherToSend, "ether"), // Convert Ether to Wei
-          gas: data.DEFAULT.Gas
-      }
-  );
-
+  deployer.deploy(FederatedModel, data.DEFAULT.InputDimension, data.DEFAULT.OutputDimension, data.DEFAULT.LearningRate, data.DEFAULT.Precision, data.DEFAULT.BatchSize, data.DEFAULT.IntervalTime);
   deployer.deploy(verifier, { gas: data.DEFAULT.Gas });
   deployer.deploy(verifier_aggregator, { gas: data.DEFAULT.Gas });
 };
