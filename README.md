@@ -34,24 +34,24 @@ If this is the first time you're installing ZoKrates run the following:
 
 ##### Client Verifier
 
-`cd Verification/`
+      cd verification/
 
-      zokrates compile -i ZoKrates/root.zok
+      zokrates compile -i zokrates/root.zok
       zokrates setup
       zokrates export-verifier
 
 ##### Aggregator Verifiers
 
-`cd Verification/ZoKrates/aggregator`
+      cd zokrates/aggregator
 
-      zokrates compile -i aggregator.zok
+      zokrates compile -i root.zok
       zokrates setup
       zokrates export-verifier
 
 #### Copy Solidity File
 
-copy `Verification/verifier.sol` file into `Blockchain/Truffle/contracts/verifier.sol`.
-copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truffle/contracts/verifier_aggregator.sol` AND add `Aggregator` suffix to the end of the structs. (So it will be distinguishable from the first verifier's structs)
+copy `verification/verifier.sol` file into `blockchain/Truffle/contracts/verifier.sol`.
+copy `verification/zokrates/aggregator/verifier.sol` file into `blockchain/Truffle/contracts/verifier_aggregator.sol` AND add `Aggregator` suffix to the end of the structs. (So it will be distinguishable from the first verifier's structs)
 
 ### Ganache
 
@@ -67,16 +67,16 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 
 ##### via Docker
 
-- set `docker: true` in `Blockchain/Truffle/truffle-config.js` file.
+- set `docker: true` in `blockchain/Truffle/truffle-config.js` file.
 - pull the required solc version from docker hub and compile:
 
-      cd Blockchain/Truffle/
+      cd blockchain/Truffle/
       sudo rm -rf build/contracts/*
       sudo truffle compile
 
 #### Migrate
 
-- make sure ganache is running and run (in Blockchain/Truffle/):
+- make sure ganache is running and run (in blockchain/Truffle/):
 
       sudo truffle migrate
       cd ...
@@ -91,10 +91,10 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 
 ### Devices
 
- - download data (Daily and Sports Activities) from: <https://archive.ics.uci.edu/dataset/256/daily+and+sports+activities> 
-- check `Devices/Edge_Device/data/iot_data` exists.
-- run: `python Devices/Edge_Device/iot_data_merge_script.py`
-- make sure these folders/file are generated in `Devices/Edge_Device/data/`:
+<!-- - download data (Daily and Sports Activities) from: <https://archive.ics.uci.edu/dataset/256/daily+and+sports+activities> -->
+- check `devices/edge_device/data/iot_data` exists.
+- run: `python devices/edge_device/iot_data_merge_script.py`
+- make sure these folders/file are generated in `devices/edge_device/data/`:
       - `Device_{Number: 1-9}` folders
       - `train.txt`
       - `test.txt`
@@ -103,6 +103,19 @@ copy `Verification/ZoKrates/aggregator/verifier.sol` file into `Blockchain/Truff
 
 ## Run
 
-Start devices: 
+Start devices:
 
       python Devices/main.py
+
+## Analyze Zokrates
+
+      cd verification/analytics
+
+Change the `repeat` in analyze.py and `bs` (batchsize) in root.zok.
+
+      python analyze.py
+
+It will generate two csv files named: `analytics.csv` and `analytics_memory.csv`.
+
+      python calculate_analytics_avg.py
+      
