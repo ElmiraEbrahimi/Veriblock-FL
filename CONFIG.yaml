@@ -1,58 +1,18 @@
 DEFAULT:
-
-  DeviceDataPath: 'Devices/Edge_Device/data'
-  # DeviceDataPath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data"
-  AnalyticsOutBase: 'Devices/Analytics/'
-  # AnalyticsOutBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Analytics/"
-  IntervalDataGenerator: 1
-  NumberOfSamplesGenerated: 50
-  MessageBrokerHost: "localhost"
-  QueueBase: "Queue"
-  InputDimension: 9
-  OutputDimension: 6
-  NumberOfParticipants: 6
-  Epochs: 1
-  LearningRate: 1000
-  Precision: 10000
-  WaitingTime: 2
-  BatchSize: 10
-  Rounds: 300
-  TestFilePath: 'Devices/Edge_Device/data/test_file.txt'
-  # TestFilePath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data/test_file.txt"
-  TrainFilePath: 'Devices/Edge_Device/data/'
-  # TrainFilePath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/Edge_Device/data/"
-  IntervalTime: 40
-  PercentOfDataGenerated: 0.0086
-  #PerformProof: False
-  PerformProof: true
-  Gas: 100000000000000
-
-  ResponseVariable: "Activity"
-  EtheriumRPCServer: "http://127.0.0.1:8545"
-  #change this when you compile the smart contract
-  FLContractAddress: "0xdF430A71d0C1Ab7CBCA5D805594082aD18182c2c"
-  #change this when you compile the smart contract
-  VerifierContractAddress: "0xfB687535304726B74dd44FB02922D67809142358"
-  VerifierAggregatorContractAddress: "0xb9C4de6270193a65E416296C7574ACe5baA78Ab5"
-  ZokratesPath: 'Verification/ZoKrates/root.zok'
-  # ZokratesPath: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/ZoKrates/root.zok"
-  VerificationBase: 'Verification/'
-  # VerificationBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/SAVED_VERIFYER_10/"
-  ZokratesBase: 'Verification/ZoKrates/'
-  # ZokratesBase: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Verification/ZoKrates/"
-  FLContractABIPAth: 'Blockchain/Truffle/build/contracts/FederatedModel.json'
-  # FLContractABIPAth: "D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Blockchain/Truffle/build/contracts/FederatedModel.json"
-  Activities: [5, 11, 12, 14, 15, 17]
-  ActivitiesEncoded: [1, 2, 3, 4, 5, 6]
-  ActivityMappings:
-    2: 1
-    3: 1
-    4: 1
-    16: 15
-    6: 5
-    10: 11
-    13: 14
-    7: 1
+  Activities:
+  - 5
+  - 11
+  - 12
+  - 14
+  - 15
+  - 17
+  ActivitiesEncoded:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
   ActivityEncoding:
     5: 1
     11: 2
@@ -60,5 +20,42 @@ DEFAULT:
     14: 4
     15: 5
     17: 6
-  # AnalyticsOutBase: 'Devices/MiddleWare/Analytics/'
-  #  NumberOfParticipants: 6
+  ActivityMappings:
+    2: 1
+    3: 1
+    4: 1
+    6: 5
+    7: 1
+    10: 11
+    13: 14
+    16: 15
+  AnalyticsOutBase: 'devices/middleware/analytics/'
+  BatchSize: 10
+  DeviceDataPath: 'devices/edge_device/data'
+  Epochs: 1
+  EtheriumRPCServer: http://127.0.0.1:8545
+  FLContractABIPAth: 'blockchain/Truffle/build/contracts/FederatedModel.json'
+  FLContractAddress: '0xE255c86179D1bd746b637902F99239d0694AAFfa'
+  Gas: 100000000000000
+  InputDimension: 9
+  IntervalDataGenerator: 1
+  IntervalTime: 40
+  LearningRate: 1000
+  MessageBrokerHost: localhost
+  NumberOfParticipants: 6
+  NumberOfSamplesGenerated: 50
+  OutputDimension: 6
+  PercentOfDataGenerated: 0.0086
+  PerformProof: true
+  Precision: 10000
+  QueueBase: Queue
+  ResponseVariable: Activity
+  Rounds: 5
+  TestFilePath: 'devices/edge_device/data/test_file.txt'
+  TrainFilePath: 'devices/edge_device/data/'
+  VerificationBase: 'verification/'
+  ZokratesBase: 'verification/zokrates/'
+  VerifierContractAddress: '0xA16cdBA813F8F4c99181fBda46C7352a2991d881'
+  VerifierAggregatorContractAddress: '0x566CE0F3f536bE0D019a39a1b9FB21Da76250A96'
+  WaitingTime: 2
+  ZokratesPath: 'verification/zokrates/root.zok'
