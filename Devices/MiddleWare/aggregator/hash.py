@@ -67,7 +67,9 @@ ROUND_CONSTANTS = [
     3938980639125,
 ]
 
-SNARK_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+SNARK_SCALAR_FIELD = (
+    21888242871839275222246405745257275088548364400416034343698204186575808495617
+)
 
 
 def convert_matrix(m):
@@ -78,42 +80,50 @@ def convert_matrix(m):
     sign_mask = np.where(m > 0, 0, 1)  # This remains unchanged
     return adjusted_values, sign_mask
 
-    # adjusted_values = []
-    # sign_mask = []
-    # for row in m:
-    #     # Ensure row is iterable
-    #     if isinstance(row, int):
-    #         row = row % SNARK_SCALAR_FIELD
-    #         if row < 0:
-    #             row += SNARK_SCALAR_FIELD
-    #         adjusted_values.append(row)
-    #         sign_mask.append(0 if row > 0 else 1)
-    #     else:
-    #         adjusted_row = []
-    #         sign_row = []
-    #         for value in row:
-    #             adjusted_value = value % SNARK_SCALAR_FIELD
-    #             if value < 0:
-    #                 adjusted_value += SNARK_SCALAR_FIELD
-    #             adjusted_row.append(adjusted_value)
-    #             sign_row.append(0 if value > 0 else 1)
-    #         adjusted_values.append(adjusted_row)
-    #         sign_mask.append(sign_row)
-    # return adjusted_values, sign_mask
+
+#     # adjusted_values = []
+#     # sign_mask = []
+#     # for row in m:
+#     #     # Ensure row is iterable
+#     #     if isinstance(row, int):
+#     #         row = row % SNARK_SCALAR_FIELD
+#     #         if row < 0:
+#     #             row += SNARK_SCALAR_FIELD
+#     #         adjusted_values.append(row)
+#     #         sign_mask.append(0 if row > 0 else 1)
+#     #     else:
+#     #         adjusted_row = []
+#     #         sign_row = []
+#     #         for value in row:
+#     #             adjusted_value = value % SNARK_SCALAR_FIELD
+#     #             if value < 0:
+#     #                 adjusted_value += SNARK_SCALAR_FIELD
+#     #             adjusted_row.append(adjusted_value)
+#     #             sign_row.append(0 if value > 0 else 1)
+#     #         adjusted_values.append(adjusted_row)
+#     #         sign_mask.append(sign_row)
+#     # return adjusted_values, sign_mask
 
 
 def mimc(x, k, e=7, R=64):
-    # try:
     for i in range(R):
         c_i = ROUND_CONSTANTS[i]
-        # ensure the operation stays within field
-        a = (x + k + c_i) % SNARK_SCALAR_FIELD
-        x = pow(a, e)        
-        x %= SNARK_SCALAR_FIELD
-
-    # except Exception:
-    #     raise Exception(f"{x=}, {k=}, {c_i=}, {e=}, {SNARK_SCALAR_FIELD=}")
+        a = (
+            x + k + c_i
+        ) % SNARK_SCALAR_FIELD  # Ensure intermediate result is within the field
+        x = pow(int(a), e, SNARK_SCALAR_FIELD)
     return (x + k) % SNARK_SCALAR_FIELD
+
+
+# def modular_pow(base, exponent, modulus):
+#     result = 1
+#     base = base % modulus
+#     while exponent > 0:
+#         if exponent % 2 == 1:
+#             result = (result * base) % modulus
+#         exponent = exponent // 2
+#         base = (base * base) % modulus
+#     return result
 
 
 def mimc_hash(w: np.ndarray, b: np.ndarray, k=0, e=7, R=64):
