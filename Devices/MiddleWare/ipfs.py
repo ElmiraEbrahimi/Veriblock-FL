@@ -1,11 +1,13 @@
-import pickle
 import os
+import pickle
 
 
 class IPFSConnector:
-
     def __init__(self) -> None:
         self.data_file_path = "ipfs.pickle"
+        # if file exists, delete it:
+        if os.path.exists(self.data_file_path):
+            os.remove(self.data_file_path)
         self.data: dict[str, str] = {}  # key -> value
         self.inner_counter = 0
         # initialize the data:
