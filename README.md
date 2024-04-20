@@ -35,6 +35,8 @@ If this is the first time you're installing ZoKrates run the following:
 ##### Client Verifier
 
       cd verification/
+      sudo ./x_remove_zokrates_files.sh
+      sudo ./x_remove_devices_witness_proof.sh
 
       zokrates compile -i zokrates/root.zok
       zokrates setup
@@ -55,13 +57,17 @@ copy `verification/zokrates/aggregator/verifier.sol` file into `blockchain/Truff
 
 ### Ganache
 
-      sudo docker run -d -p 8545:8545 trufflesuite/ganache:v7.0.0 --miner.blockGasLimit=0x1fffffffffffff  --chain.allowUnlimitedContractSize=true --wallet.defaultBalance 1000000000
+      sudo docker run -d -p 8545:8545 trufflesuite/ganache:v7.0.0 --miner.blockGasLimit=0x1fffffffffffff  --chain.allowUnlimitedContractSize=true --wallet.defaultBalance 1000000000 --accounts 15
 
 ### Truffle
 
 #### Install
 
 <https://archive.trufflesuite.com/docs/truffle/how-to/install/>
+
+Run:
+
+`npm install -g solc`
 
 #### Compile
 
@@ -105,11 +111,11 @@ copy `verification/zokrates/aggregator/verifier.sol` file into `blockchain/Truff
 
 Start devices:
 
-      python Devices/main.py
+      python devices/main.py
 
 ## Analyze Zokrates
 
-      cd verification/analytics
+      cd verification/time_memory_analytics
 
 Change the `repeat` in analyze.py and `bs` (batchsize) in root.zok.
 
@@ -117,5 +123,85 @@ Change the `repeat` in analyze.py and `bs` (batchsize) in root.zok.
 
 It will generate two csv files named: `analytics.csv` and `analytics_memory.csv`.
 
-      python calculate_analytics_avg.py
-      
+### ChartMart
+
+python calculate_analytics_avg.py
+
+pip install notebook
+
+## "Old" and "New" code
+
+### Browse files on GitHub
+
+- old code (modified to be runnable) files:
+
+GITHUB-REPO-URL/tree/old
+
+- new code (including aggregator) files:
+  
+GITHUB-REPO-URL/tree/main
+
+### Run old ode (on server - via SSH)
+
+1. SSH into server (via vscode)
+2. Run:
+`cd ~/Original/`
+3. Check `CONFIG.yaml` and `Verification/ZoKrates/root.zok` files to include the desired variables.
+4. If the environment variable is not already activated, run:
+`source ./.venv/bin/activate`
+5. Run:
+`./start.sh`
+(you will be asked to type password)
+6. Copy the contract addresses and paste into `CONFIG.yaml`
+7. Run:
+`export PYTHONPATH='.'`
+8. Run:
+`python Devices/main.py`
+
+### New code (on server - via SSH)
+
+1. SSH into server (via vscode)
+2. Run:
+`cd ~/Abbfltvocc/`
+3. Check `CONFIG.yaml`, `verification/zokrates/root.zok` and `verification/zokrates/aggregator/root.zok` files to include the desired variables.
+4. If the environment variable is not already activated, run:
+`source ./venv/bin/activate`
+5. Run:
+`./start.sh`
+(you will be asked to type password)
+6. Copy the contract addresses and paste into `CONFIG.yaml`
+7. Run:
+`python devices/main.py`
+
+## Full-Run Sequence
+
+1. Change variables in `CONFIG.yml` and `root.zok` files.
+
+2. Run
+
+cd verification/
+sudo ./x_remove_devices_witness_proof.sh
+sudo ./x_remove_zokrates_files.sh
+
+zokrates compile -i zokrates/root.zok
+zokrates setup
+zokrates export-verifier
+
+cd zokrates/aggregator
+zokrates compile -i root.zok
+zokrates setup
+zokrates export-verifier
+cd ./../../../
+
+3. Copy `verifier.sol` files into `blockchain/Truffle/contracts/`. (Note that `verifier_aggregator.sol` is created based on `aggregator/root.zok` file)
+31. Edit `FederatedModel.sol` for correct input variables.
+
+4. Start it all
+
+./start.sh
+
+5. Copy the contract address and paste into `CONFIG.yml`
+
+6. Run
+
+python devices/main.py
