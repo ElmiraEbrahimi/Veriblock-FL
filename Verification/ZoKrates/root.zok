@@ -258,7 +258,7 @@ def main(
         }
     }
 
-    assert(res == u32_to_field(ac + fe * ac));
+    assert(res == u32_to_field(ac + fe * ac));  // TODO
 
     // MIMC hash constant 
     field[64] round_constants = [

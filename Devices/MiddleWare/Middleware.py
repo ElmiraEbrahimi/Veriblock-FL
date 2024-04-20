@@ -11,7 +11,7 @@ import pandas as pd
 
 from Analytics.Analytics import Analytics
 from MiddleWare.aggregator.hash import mimc_hash
-from MessageBroker.Consumer import Consumer
+from message_broker.Consumer import Consumer
 from MiddleWare.NeuralNet import Network, FCLayer, mse_prime, mse
 
 

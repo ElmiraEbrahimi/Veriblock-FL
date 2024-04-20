@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import time
-from MessageBroker.Publisher import Publisher
+from message_broker.Publisher import Publisher
 
 
 class EdgeDevice:

@@ -1,4 +1,3 @@
-import copy
 import datetime
 import os
 import subprocess
@@ -65,7 +64,7 @@ def compile():
         zokrates,
         "compile",
         "-i",
-        "./../../zokrates/aggregator/root.zok",
+        "./../zokrates/root.zok",
     ]
     p, all_mem, max_mem = run_process(zokrates_compile)
     if p.returncode != 0:
@@ -129,55 +128,36 @@ def compute_witness():
         b = b - (error / learning_rate).astype(int)
     # ,bias,bias_sign,x,x_sign,1,learning_rate,precision
 
-    k = client_number
-    local_w = [copy.deepcopy(weights) for _ in range(k)]
-    local_w_sign = [copy.deepcopy(weights_sign) for _ in range(k)]
-    local_b = [copy.deepcopy(bias) for _ in range(k)]
-    local_b_sign = [copy.deepcopy(bias_sign) for _ in range(k)]
-
-    global_b = (
+    new_bias = (
         np.random.randn(
             ac,
         )
         * precision
     )
-    global_w = np.random.randn(ac, fe) * precision
-    global_w = np.array([[int(x) for x in y] for y in global_w])
-    global_b = np.array([int(x) for x in global_b])
-    global_w, global_w_sign = convert_matrix(global_w)
-    global_b, global_b_sign = convert_matrix(global_b)
+    new_weights = np.random.randn(ac, fe) * precision
+    new_weights = np.array([[int(x) for x in y] for y in new_weights])
+    new_bias = np.array([int(x) for x in new_bias])
+    new_weights, _ = convert_matrix(new_weights)
+    new_bias, _ = convert_matrix(new_bias)
 
-    expected_global_b = (
-        np.random.randn(
-            ac,
-        )
-        * precision
-    )
-    expected_global_w = np.random.randn(ac, fe) * precision
-    expected_global_w = np.array([[int(x) for x in y] for y in expected_global_w])
-    expected_global_b = np.array([int(x) for x in expected_global_b])
-    expected_global_w, expected_global_w_sign = convert_matrix(expected_global_w)
-    expected_global_b, expected_global_b_sign = convert_matrix(expected_global_b)
-
-    sc_lhashes = ["123456" for i in range(k)]
-    gdigest = mimc_hash(weights, bias)
+    ldigest = mimc_hash(new_weights, new_bias)
+    sc_global_model_hash = mimc_hash(weights, bias)
 
     out = out_layer
     args = [
-        local_w,
-        local_w_sign,
-        local_b,
-        local_b_sign,
-        global_w,
-        global_w_sign,
-        global_b,
-        global_b_sign,
-        sc_lhashes,
-        expected_global_w,
-        expected_global_w_sign,
-        expected_global_b,
-        expected_global_b_sign,
-        gdigest,
+        weights,
+        weights_sign,
+        bias,
+        bias_sign,
+        x_train,
+        x_train_sign,
+        Y,
+        learning_rate,
+        precision,
+        new_weights,
+        new_bias,
+        ldigest,
+        sc_global_model_hash,
     ]
     zokrates_compute_witness = [
         zokrates,
@@ -226,23 +206,16 @@ def export_verifier():
     return diff, all_mem, max_mem
 
 
-# def get_batchsize(zok_filepath):
-#     with open(zok_filepath, "r") as f:
-#         for line in f.readlines():
-#             if "const u32  bs =" in line:
-#                 return int(line.split("const u32  bs =")[1].strip().split(";")[0])
-
-
-def get_client_number(zok_filepath):
+def get_batchsize(zok_filepath):
     with open(zok_filepath, "r") as f:
         for line in f.readlines():
-            if "const u32 c =" in line:
-                return int(line.split("const u32 c =")[1].strip().split(";")[0])
+            if "const u32  bs =" in line:
+                return int(line.split("const u32  bs =")[1].strip().split(";")[0])
 
 
 def calculate_average(analytics_filepath):
     analytics_df = pd.read_csv(analytics_filepath)
-    grouped_df = analytics_df.groupby("client_number")
+    grouped_df = analytics_df.groupby("batchsize")
     average_df = grouped_df.mean().round(2)
     average_df = average_df.rename(columns=lambda x: f"{x}_avg")
     average_df.reset_index(inplace=True)
@@ -261,7 +234,6 @@ zokrates = "zokrates"
 result_df = pd.DataFrame(
     columns=[
         "datetime",
-        "client_number",
         "batchsize",
         "t_compile",
         "t_setup",
@@ -278,7 +250,6 @@ result_df = pd.DataFrame(
 memory_usage_df = pd.DataFrame(
     columns=[
         "datetime",
-        "client_number",
         "batchsize",
         "all_mem_compile",
         "all_mem_setup",
@@ -292,12 +263,8 @@ repeat = 3
 for i in range(repeat):
     print(f"Analyzing zokrates files - Round {i+1}")
     dt = datetime.datetime.now()
-    client_number = get_client_number(
-        zok_filepath="./../../zokrates/aggregator/root.zok"
-    )
-    print(f"Detected client number: {client_number}")
-    batchsize = 10
-    print(f"Batchsize: {batchsize}")
+    batchsize = get_batchsize(zok_filepath="./../zokrates/root.zok")
+    print(f"Detected batchsize: {batchsize}")
 
     t_compile, all_mem_compile, max_mem_compile = compile()
     t_setup, all_mem_setup, max_mem_setup = setup()
@@ -312,7 +279,6 @@ for i in range(repeat):
     result_df = result_df.append(
         {
             "datetime": dt,
-            "client_number": client_number,
             "batchsize": batchsize,
             "t_compile": t_compile,
             "t_setup": t_setup,
