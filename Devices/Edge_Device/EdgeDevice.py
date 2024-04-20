@@ -1,7 +1,8 @@
 import os
-import pandas as pd
 import time
-from message_broker.Publisher import Publisher
+
+import pandas as pd
+from message_broker.publisher import Publisher
 
 
 class EdgeDevice:
