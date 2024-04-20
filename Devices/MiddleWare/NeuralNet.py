@@ -26,7 +26,7 @@ def mse_prime(y_true, y_pred):
 
 
 class Layer:
-    def __init__(self, precision=10**6):
+    def __init__(self, precision=10**4):
         self.input = None
         self.output = None
         self.precision = precision
