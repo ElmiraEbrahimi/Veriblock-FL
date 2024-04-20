@@ -34,7 +34,10 @@ Note: `ufw` won't work with Docker (yet).
 ### Essentials
 
 - First update and upgrade packages: `sudo apt update && sudo apt upgrade`
-- Now install essentials: `sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev git` and `sudo apt install software-properties-common`.
+- Now install essentials: `sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev git`
+- `sudo apt install software-properties-common`.
+- `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt-get update`
+- `sudo apt install python3.9-distutils`
 
 ### OMZ (Optional)
 
@@ -75,11 +78,10 @@ Visit: <https://docs.docker.com/engine/install/ubuntu/>
 
 Done!
 
-
 ## Enable Swap (Optional)
 
     sudo swapoff -a
-    sudo dd if=/dev/zero of=/swapfile bs=8G count=8
+    sudo dd if=/dev/zero of=/swapfile bs=1G count=150
     sudo chmod 0600 /swapfile
     sudo mkswap /swapfile  # Set up a Linux swap area
     sudo swapon /swapfile  # Turn the swap on
