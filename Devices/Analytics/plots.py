@@ -17,11 +17,11 @@ activity_wording = {
 
 
 markers = [".", "x", "2", "1", "X", "+", "d", "3"]
-BASE_PATH = "/D:/Advancing-Blockchain-Based-Federated-Learning-Through-Verifiable-Off-Chain-Computations/Devices/MiddleWare/Analytics"
+BASE_PATH = "data"
 
 # %%
 
-participants = 8
+participants = 2
 batchsize = 40
 
 # %%
@@ -276,7 +276,7 @@ for j in range(0, len(data.keys())):
     plot_update_blockchain_time(df["Round_Update_Blockchain_Time"], marker=markers[j])
 plt.legend(list(data.keys()))
 
-# %%
+# %% §§§§§§§§§§§ here gives two plot toghter
 
 for device in data.keys():
     df = data[device]
@@ -298,7 +298,8 @@ plt.legend(list(data.keys()))
 batchsizes = [10, 20, 30, 40]
 participants = range(8, 9)
 devices = range(1, 9)
-# %%
+
+# %%   error not found
 
 data = {}
 for participant in participants:
@@ -469,9 +470,16 @@ for participant in data.keys():
     plt.savefig("roundupdateBCtimeBP.pgf")
 
 # %%
+import matplotlib.pyplot as plt
+plt.rcParams['text.usetex'] = True
+plt.rcParams['pgf.texsystem'] = 'pdflatex'  # or 'xelatex' or 'lualatex'
+plt.rcParams['text.usetex'] = False
+
+
+
 for participant in data.keys():
     batches = data[participant]
-    plt.figure(figsize=(15, 10))
+    plt.figure(figsize=(7, 4))
     dict = {}
     plt.rc("pgf", texsystem="pdflatex")
     df = pd.DataFrame(dict.items(), columns=dict.keys())
@@ -490,7 +498,7 @@ for participant in data.keys():
 
 for participant in data.keys():
     batches = data[participant]
-    plt.figure(figsize=(15, 10))
+    plt.figure(figsize=(7, 4))
     dict = {}
     plt.rc("pgf", texsystem="pdflatex")
     df = pd.DataFrame(dict.items(), columns=dict.keys())
@@ -659,7 +667,7 @@ for participant in participants:
                 temp_b["Device_" + str(device)] = temp_d
             except FileNotFoundError:
                 print("Not found")
-        temp_p["BatchSize_" + str(batchsize)] = temp_b
+        temp_p["Batchsize_" + str(batchsize)] = temp_b
     data["Participants_" + str(participant)] = temp_p
 dict = {}
 for participant in data.keys():
@@ -682,10 +690,13 @@ for j in range(0, len(dict.keys())):
     key = list((dict.keys()))[j]
     k = dict[key]
     if len(k.columns) > 1:
-        plt.plot(range(1, len(dict[key]) + 1), k, linewidth=0.5, markevery=10)
-        plt.ylabel("Accuracy Score")
-        plt.xlabel("Round Number")
-        plt.legend(k.columns)
+        plt.figure(figsize=(8, 4.5))
+        plt.plot(range(1, len(dict[key]) + 1), k, linewidth=1, markevery=10)
+        plt.ylabel("Accuracy score" ,fontsize=14)
+        plt.xlabel("Round number",  fontsize=14)
+        plt.legend(k.columns, fontsize=11)
+        plt.xticks( fontsize=12)  # Increase font size for x-axis ticks
+        plt.yticks(fontsize=14) 
         plt.savefig(f"participantsVSBatchsize_{key}.pgf")
         plt.show()
 
@@ -729,13 +740,13 @@ for j in range(0, len(dict.keys())):
     axs[x][y].title.set_text(key)
     axs[x][y].legend(k.columns)
 
-# plt.ylabel("Accuracy Score")
-# plt.xlabel("Round Number")
-# plt.legend(ls,,loc="upper right")
+plt.ylabel("Accuracy Score")
+plt.xlabel("Round Number")
+plt.legend(ls,loc="upper right")
 plt.subplots_adjust(wspace=0, hspace=0.2)
-axs[0][0].set_ylabel("Accuracy Score")
-axs[1][0].set_ylabel("Accuracy Score")
-axs[1][0].set_xlabel("Round Number")
+# axs[0][0].set_ylabel("Accuracy Score")
+# axs[1][0].set_ylabel("Accuracy Score")
+# axs[1][0].set_xlabel("Round Number")
 axs[1][1].set_xlabel("Round Number")
 fig.savefig(f"participants_in_sameBatchsize.pgf")
 plt.show()
