@@ -1,18 +1,19 @@
+import functools
 import io
 import json
 import subprocess
 import threading
 import time
-import functools
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, accuracy_score
-import pandas as pd
 
-from Analytics.Analytics import Analytics
-from MiddleWare.aggregator.hash import mimc_hash
-from message_broker.Consumer import Consumer
-from MiddleWare.NeuralNet import Network, FCLayer, mse_prime, mse
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import StandardScaler
+
+from devices.analytics.analytics import Analytics
+from devices.message_broker.consumer import Consumer
+from devices.middleware.neural_net import FCLayer, Network, mse, mse_prime
+from devices.utils.gas import get_current_balance
 
 
 def print_report(device, model, X_test, y_test):
@@ -183,7 +184,7 @@ class FederatedLearningModel:
             learning_rate=self.learning_rate,
         )
         score = self.test_model()
-        print(f"{self.deviceName}: Score:", score)
+        print(f"{self.deviceName}:Score :", score)
 
     def reset_batch(self):
         self.curr_batch = None
@@ -273,8 +274,6 @@ class MiddleWare:
         weights_new, _ = convert_matrix(w_new)
         bias_new, _ = convert_matrix(b_new)
         x, x_sign = convert_matrix(x_train)
-        ldigest = mimc_hash(weights_new, bias_new)
-        sc_global_model_hash = mimc_hash(global_weights, global_bias)
         args = [
             global_weights,
             global_weights_sign,
@@ -287,8 +286,6 @@ class MiddleWare:
             self.precision,
             weights_new,
             bias_new,
-            ldigest,
-            sc_global_model_hash,
         ]
         out_path = verification_base + "out"
         abi_path = verification_base + "abi.json"
@@ -307,12 +304,13 @@ class MiddleWare:
         zokrates_compute_witness.extend(args_parser(args).split(" "))
         g = subprocess.run(zokrates_compute_witness, capture_output=True)
 
-        print(f"{self.deviceName} output:", g.stdout.decode())
-        errors = g.stderr.decode()
-        if errors:
-            print(f"{self.deviceName} error:", errors)
-
-        # raise Exception(f'{ g.stderr.decode()} {g.stdout.decode()}')
+        if g.returncode != 0:
+            print("Error: {self.deviceName} returned non-zero:")
+            print(f"{g.stderr.decode()=}")
+            print(f"{g.stdout.decode()=}")
+            print(f"{g.returncode=}")
+            print(f"{args=}")
+            raise Exception("Error")
 
         proof_path = verification_base + "proof_" + self.deviceName
         proving_key_path = verification_base + "proving.key"
@@ -330,10 +328,12 @@ class MiddleWare:
         ]
         g = subprocess.run(zokrates_generate_proof, capture_output=True)
 
-        print(f"{self.deviceName} output:", g.stdout.decode())
-        errors = g.stderr.decode()
-        if errors:
-            print(f"{self.deviceName} error:", errors)
+        if g.returncode != 0:
+            print("Error: {self.deviceName} returned non-zero:")
+            print(f"{g.stderr.decode()=}")
+            print(f"{g.stdout.decode()=}")
+            print(f"{g.returncode=}")
+            raise Exception("Error")
 
         with open(proof_path, "r+") as f:
             self.proof = json.load(f)
@@ -348,13 +348,23 @@ class MiddleWare:
         self.consumer_thread = threading.Thread(target=self.consumer.start_consuming)
         self.consumer_thread.start()
 
-    def update(self, w, b, mse_score, p, r, balance):
+    def update(self, w, b, p, r, balance):
         tu = time.time()
-        self.blockChainConnection.update(w, b, mse_score, self.accountNR, p)
+        self.blockChainConnection.update(w, b, self.accountNR, p)
         self.analytics.add_round_update_blockchain_time(r, time.time() - tu)
         self.analytics.add_round_gas(
             self.round,
             balance - self.blockChainConnection.get_account_balance(self.accountNR),
+        )
+
+        # gas usage:
+        get_current_balance(
+            web3=self.blockChainConnection.web3Connection,
+            account_address=self.blockChainConnection.web3Connection.eth.accounts[
+                self.accountNR
+            ],
+            round=self.round,
+            source=f"Account-{self.accountNR}",
         )
 
     def start_Middleware(self):
@@ -372,7 +382,6 @@ class MiddleWare:
             )
             if outstanding_update:
                 t = time.time()
-                # get from blockchain:
                 balance = self.blockChainConnection.get_account_balance(self.accountNR)
                 global_weights = self.blockChainConnection.get_globalWeights(
                     self.accountNR
@@ -380,7 +389,6 @@ class MiddleWare:
                 global_bias = self.blockChainConnection.get_globalBias(self.accountNR)
                 lr = self.blockChainConnection.get_LearningRate(self.accountNR)
                 self.precision = self.blockChainConnection.get_Precision(self.accountNR)
-                # init blockchain vars to model:
                 self.model.set_precision(precision=self.precision)
                 self.model.set_learning_rate(lr)
                 self.model.set_weights(global_weights)
@@ -402,7 +410,6 @@ class MiddleWare:
                 )
                 w = self.model.get_weights()
                 b = self.model.get_bias()
-                mse_score = self.model.net.mse_average
                 if self.config["DEFAULT"]["PerformProof"]:
                     tp = time.time()
                     self.__generate_Proof(
@@ -417,8 +424,7 @@ class MiddleWare:
                     self.analytics.add_round_proof_times(self.round, time.time() - tp)
                 self.model.reset_batch()
                 thread = threading.Thread(
-                    target=self.update,
-                    args=[w, b, mse_score, self.proof, self.round, balance],
+                    target=self.update, args=[w, b, self.proof, self.round, balance]
                 )
                 thread.start()
                 print(
@@ -429,6 +435,7 @@ class MiddleWare:
             time.sleep(self.config["DEFAULT"]["WaitingTime"])
             # self.__sleep_call(10)
         self.analytics.write_data()
+        print("done.")
 
     def __sleep_call(self, t):
         # print(f"{self.deviceName}:Checking for new update round in:")

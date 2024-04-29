@@ -1,6 +1,5 @@
 import json
 import os
-import time
 
 import yaml
 from dotenv import load_dotenv
@@ -34,17 +33,3 @@ def read_json(file_path):
 def read_yaml(file_path):
     with open(file_path, "r") as f:
         return yaml.safe_load(f)
-
-
-def wait_for_process(process, sleep_time: float = 0.2):
-    # check process is done + write to disk delay window
-    # while process.poll() is None:
-    time.sleep(sleep_time)
-
-
-def wait_for_file_creation(file_path: str, sleep_time: float = 0.5):
-    is_file_found = os.path.exists(file_path)
-    while not is_file_found:
-        print(f"Waiting for file creation... ({file_path})")
-        time.sleep(sleep_time)
-        is_file_found = os.path.exists(file_path)

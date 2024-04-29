@@ -1,18 +1,18 @@
 DEFAULT:
   Activities:
-  - 5
-  - 11
-  - 12
-  - 14
-  - 15
-  - 17
+    - 5
+    - 11
+    - 12
+    - 14
+    - 15
+    - 17
   ActivitiesEncoded:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
   ActivityEncoding:
     5: 1
     11: 2
@@ -29,11 +29,11 @@ DEFAULT:
     10: 11
     13: 14
     16: 15
-  AnalyticsOutBase: 'devices/middleware/analytics/'
-  DeviceDataPath: 'devices/edge_device/data'
+  AnalyticsOutBase: "middleware/analytics/"
+  DeviceDataPath: "edge_device/data"
   Epochs: 1
   EtheriumRPCServer: http://127.0.0.1:8545
-  FLContractABIPAth: 'blockchain/Truffle/build/contracts/FederatedModel.json'
+  FLContractABIPAth: "./../blockchain/truffle/build/contracts/FederatedModel.json"
   Gas: 100000000000000
   InputDimension: 9
   LearningRate: 1000
@@ -44,21 +44,18 @@ DEFAULT:
   Precision: 10000
   QueueBase: Queue
   ResponseVariable: Activity
-  TestFilePath: 'devices/edge_device/data/test_file.txt'
-  TrainFilePath: 'devices/edge_device/data/'
-  VerificationBase: 'verification/'
-  ZokratesBase: 'verification/zokrates/'
-  FLContractAddress: '0xc1f0af8A73339c237e00995e6115eFB0Aa4C2d26'
-  VerifierContractAddress: '0x97aB0ABD4dA765487Ce33E8c152b5a5400C1b836'
-  VerifierAggregatorContractAddress: '0x70AcD71344568221d5874d5A49613e67BA29582B'
-  BatchSize: 40
-  NumberOfParticipants: 8
-  Rounds: 500
-  # WaitingTime: 2
-  # IntervalDataGenerator: 1
-  # IntervalTime: 40
-  WaitingTime: 0.2
-  IntervalDataGenerator: 0.1
-  IntervalTime: 1
+  TestFilePath: "edge_device/data/test_file.txt"
+  TrainFilePath: "edge_device/data/"
+  VerificationBase: "./../verification/"
+  ZokratesPath: "./../verification/zokrates/root.zok"
+
   PerformProof: false
-  ZokratesPath: 'verification/zokrates/root.zok'
+  IntervalTime: 10
+  IntervalDataGenerator: 0.1
+  WaitingTime: 0.2
+  BatchSize: 10
+  NumberOfParticipants: 2
+  Rounds: 3
+
+  FLContractAddress: "0x30D622Ad0284a279D485B276c41E356F04BDE6Fb"
+  VerifierContractAddress: "0x226dEEDfAe115738725475346A3681Fba8BBfbe2"
