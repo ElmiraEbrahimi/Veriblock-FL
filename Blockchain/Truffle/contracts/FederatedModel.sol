@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./verifier.sol";
@@ -8,17 +7,6 @@ pragma experimental ABIEncoderV2;
 
 contract FederatedModel {
     address public administrator;
-
-    //  int256[] private global_weights;
-    //  int256 private global_bias;
-    //    int256 private precision=10000;
-    //   int256 learning_rate;
-    //  uint256 private dimension;
-    //    bool public isTraining=true;
-    //   address[] private participating_devices;
-    //  mapping(address => int256[]) private localWeightsMappings;
-    //    mapping(address => int256) private localBiasMappings;
-
     int256 private precision;
     uint256 private round_Number;
     int256 private learning_rate;
@@ -38,6 +26,9 @@ contract FederatedModel {
     bool is_no_proof;
     uint256 public constant numberOfBlocksAgg = 2; // Number of blocks each aggregator handles
     uint256 public constant totalAgg = 2; // Total number of aggregators
+
+    address private stake_winner_aggregator;
+    address[] private stake_winners_clients;
 
     constructor(
         uint256 id,
@@ -79,20 +70,8 @@ contract FederatedModel {
         return int(intervalEnd) - int(block.timestamp);
     }
 
-    //
     function end_update_round() external {
         if (block.timestamp >= intervalEnd) {
-            // for (uint256 i = 0; i < temp_global_weights.length; i++) {
-            //     int256[] memory temp = new int256[](
-            //         temp_global_weights[i].length
-            //     );
-            //     temp = temp_global_weights[i];
-            //     global_weights[i] = temp;
-            // }
-            // for (uint256 i = 0; i < temp_global_bias.length; i++) {
-            //     int256 temp = temp_global_bias[i];
-            //     global_bias[i] = temp;
-            // }
             intervalEnd = block.timestamp + updateInterval;
             delete participating_devices;
             round_Number = round_Number + 1;
@@ -121,20 +100,6 @@ contract FederatedModel {
         }
     }
 
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-
-    // region hash mapping
     mapping(address => string) public hashDynamicMapping;
     address[] public hashKeys;
 
@@ -172,7 +137,6 @@ contract FederatedModel {
         }
         delete hashKeys;
     }
-    // endregion
 
     function send_wb_hash(
         string memory wb_hash,
@@ -183,11 +147,12 @@ contract FederatedModel {
     ) external TrainingMode {
         require(this.checkWBHashZKP(a, b, c, input), "check wb hash failed");
         bool newUser = true;
-        //bool firstUser = true;
         address user = tx.origin;
         if (this.participantsCount() == 0) {
             participating_devices.push(user);
             setHashValue(user, wb_hash);
+            // set for stake:
+            stake_winners_clients.push(tx.origin);
         } else {
             for (uint256 i = 0; i < this.participantsCount(); i++) {
                 if (user == participating_devices[i]) {
@@ -197,6 +162,8 @@ contract FederatedModel {
             if (newUser) {
                 participating_devices.push(user);
                 setHashValue(user, wb_hash);
+                // set for stake:
+                stake_winners_clients.push(tx.origin);
             }
         }
     }
@@ -217,6 +184,9 @@ contract FederatedModel {
         weight_bias_hash = wb_hash;
         global_weights_ipfs_link = gw_ipfs_link;
         global_bias_ipfs_link = gb_ipfs_link;
+
+        // set for stake:
+        stake_winner_aggregator = tx.origin;
     }
 
     function get_global_weights_ipfs_link()
@@ -236,17 +206,15 @@ contract FederatedModel {
         return x;
     }
 
-    //
-    //
     function changeLearningRate(int256 newLearnignRate) external onlyAdmin {
         learning_rate = newLearnignRate;
     }
 
-    function getLearningRate() external returns (int256) {
+    function getLearningRate() external view returns (int256) {
         return learning_rate;
     }
 
-    function getBatchSize() external returns (uint256) {
+    function getBatchSize() external view returns (uint256) {
         return batchSize;
     }
 
@@ -254,15 +222,15 @@ contract FederatedModel {
         return round_Number;
     }
 
-    function getInputDimension() external returns (uint256) {
+    function getInputDimension() external view returns (uint256) {
         return inputDimension;
     }
 
-    function getOutputDimension() external returns (uint256) {
+    function getOutputDimension() external view returns (uint256) {
         return outputDimension;
     }
 
-    function getPrecision() external returns (int256) {
+    function getPrecision() external view returns (int256) {
         return precision;
     }
 
@@ -338,11 +306,26 @@ contract FederatedModel {
         _;
     }
 
-    // Returns the index of the current aggregator based on the current block number
-    function getSelectedAggregatorIndex() public view returns (uint256) {
+    function getStakeWinnersAndSelectedAggregatorIndex()
+        external
+        view
+        returns (address, address[] memory, uint256)
+    {
         uint256 currentBlock = block.number;
         uint256 cycleLength = numberOfBlocksAgg * totalAgg; // Total number of blocks in a full cycle
         uint256 cyclePosition = currentBlock % cycleLength; // Position in the current cycle
-        return (cyclePosition / numberOfBlocksAgg) % totalAgg; // The index of the current aggregator
+        uint256 new_aggregator_index = (cyclePosition / numberOfBlocksAgg) %
+            totalAgg;
+
+        return (
+            stake_winner_aggregator,
+            stake_winners_clients,
+            new_aggregator_index
+        );
+    }
+
+    function clearStakeWinners() external {
+        stake_winner_aggregator = address(0);
+        delete stake_winners_clients;
     }
 }
