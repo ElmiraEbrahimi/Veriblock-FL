@@ -56,7 +56,6 @@ def multiply(field mut a, field mut b, field mut a_sign, field mut b_sign) -> (f
 }
 
 // calculate the derivative of the Mean Squared Error (MSE) loss with respect to the predicted values
-// pr: A field element representing a precision value
 def mse_prime(field[ac] mut y_true, field[ac] mut y_pred, field[ac] mut y_pred_sign, field mut pr) -> (field[ac], field[ac]) {
     field[ac] mut result = [0; ac];
     field[ac] mut result_sign = [0; ac];
@@ -161,9 +160,7 @@ def forward_propagation_layer(field[ac][fe] mut w, field[ac] b, field[fe] mut x,
 }
 
 def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] mut x, field[ac] mut output_error, field mut learning_rate, field mut pr, field[ac][fe] mut w_sign,field[ac] mut b_sign,field[fe] mut x_sign,field[ac] mut output_error_sign) -> (field[ac][fe], field[ac], field[ac][fe], field[ac]) {
-    // Update Biases (b)
     for u32 i in 0..ac {
-        //tres shouldn't have mut ??
         (field, field) tres = divide(output_error[i], learning_rate, output_error_sign[i], 0);
         field temp = tres.0;
         field temp_sign = tres.1;
@@ -191,7 +188,6 @@ def backward_propagation_layer(field[ac][fe] mut w, field[ac] mut b, field[fe] m
     return (w, b, w_sign, b_sign);
 }
 
-//,field[bs][fe] x_train, field[bs][fe] x_train_sign ,field[bs] y_train,field learning_rate,field precision
 def main(
     private field[ac][fe] mut w,
     private field[ac][fe] mut w_sign,
@@ -258,7 +254,7 @@ def main(
         }
     }
 
-    assert(res == u32_to_field(ac + fe * ac));  // TODO
+    assert(res == u32_to_field(ac + fe * ac));  
 
     // MIMC hash constant 
     field[64] round_constants = [
