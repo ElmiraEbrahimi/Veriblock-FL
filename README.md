@@ -1,6 +1,4 @@
-# Advancing Blockchain-Based Federated Learning Through Verifiable Off Chain Computations
 
-## Prerequisites
 
 - [Python@3.9](https://www.python.org/downloads/)
 - [Node@20+](https://nodejs.org/en/download)
