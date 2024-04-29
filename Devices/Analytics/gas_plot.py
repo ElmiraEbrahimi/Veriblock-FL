@@ -7,9 +7,9 @@ sns.set_context("paper")
 
 # Real data
 batch_sizes = [10, 20, 30, 40]
-on_chain_gas_units = np.array([2253931, 2549744, 2952600, 3282096]) / 1e6  # Converted to millions
-off_chain_agg_gas_units = np.array([364011, 30859, 30859, 30859]) / 1e6  # Converted to millions
-off_training_gas_units = np.array([432826, 519352, 519352, 519352]) / 1e6  # Converted to millions
+on_chain_gas_units = np.array([ 2264623, 2340599,  2364371,  2398739]) / 1e6  # Converted to millions
+off_chain_agg_gas_units = np.array([386944, 386944, 386944, 386944]) / 1e6  # Converted to millions
+off_training_gas_units = np.array([432826, 432826, 432826, 432826]) / 1e6  # Converted to millions
 
 # Define a more subtle color scheme
 colors = {
@@ -34,12 +34,16 @@ plt.bar(positions, off_chain_agg_gas_units, bottom=off_training_gas_units, width
 
 # Customizing the plot
 plt.xlabel('Batch sizes', fontsize=14)  # Increase font size for x-axis label
-plt.ylabel('Gas (Millions)', fontsize=14)  # Increase font size for y-axis label
+plt.ylabel('MGas', fontsize=14)  # Increase font size for y-axis label
 plt.xticks(positions - bar_width / 2, batch_sizes, fontsize=12)  # Increase font size for x-axis ticks
 plt.yticks(fontsize=14)  # Increase font size for y-axis ticks
 
 # Adjusting the legend
-plt.legend(fontsize=11, loc='upper left')  # Increase font size for legend
+# plt.legend(fontsize=10, loc='upper left')  # Increase font size for legend
+plt.legend(fontsize=11, loc='lower center', bbox_to_anchor=(0.5, 1), ncol=3, frameon=False)
+
+# Adjust the figure layout to make room for the legend
+plt.subplots_adjust(top=0.4)
 
 
 # Add gridlines behind the bars
