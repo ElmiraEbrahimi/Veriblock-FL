@@ -1,4 +1,4 @@
-# Advancing Blockchain-Based Federated Learning Through Verifiable Off Chain Computations
+# Blockchain-based Federated Learning Utilizing Zero-Knowledge Proofs for Verifiable Training and Aggregation
 
 ## Prerequisites
 
@@ -52,8 +52,8 @@ If this is the first time you're installing ZoKrates run the following:
 
 #### Copy Solidity File
 
-copy `verification/verifier.sol` file into `blockchain/Truffle/contracts/verifier.sol`.
-copy `verification/zokrates/aggregator/verifier.sol` file into `blockchain/Truffle/contracts/verifier_aggregator.sol` AND add `Aggregator` suffix to the end of the structs. (So it will be distinguishable from the first verifier's structs)
+copy `verification/verifier.sol` file into `blockchain/truffle/contracts/verifier.sol`.
+copy `verification/zokrates/aggregator/verifier.sol` file into `blockchain/truffle/contracts/verifier_aggregator.sol` AND add `Aggregator` suffix to the end of the structs. (So it will be distinguishable from the first verifier's structs)
 
 ### Ganache
 
@@ -73,16 +73,16 @@ Run:
 
 ##### via Docker
 
-- set `docker: true` in `blockchain/Truffle/truffle-config.js` file.
+- set `docker: true` in `blockchain/truffle/truffle-config.js` file.
 - pull the required solc version from docker hub and compile:
 
-      cd blockchain/Truffle/
+      cd blockchain/truffle/
       sudo rm -rf build/contracts/*
       sudo truffle compile
 
 #### Migrate
 
-- make sure ganache is running and run (in blockchain/Truffle/):
+- make sure ganache is running and run (in blockchain/truffle/):
 
       sudo truffle migrate
       cd ...
@@ -179,29 +179,27 @@ GITHUB-REPO-URL/tree/main
 
 2. Run
 
-cd verification/
-sudo ./x_remove_devices_witness_proof.sh
-sudo ./x_remove_zokrates_files.sh
+      cd verification/
+      sudo ./x_remove_zokrates_files.sh
 
-zokrates compile -i zokrates/root.zok
-zokrates setup
-zokrates export-verifier
+      zokrates compile -i zokrates/root.zok
+      zokrates setup
+      zokrates export-verifier
 
-cd zokrates/aggregator
-zokrates compile -i root.zok
-zokrates setup
-zokrates export-verifier
-cd ./../../../
+      cd zokrates/aggregator
+      zokrates compile -i root.zok
+      zokrates setup
+      zokrates export-verifier
+      cd ./../../../
 
-3. Copy `verifier.sol` files into `blockchain/Truffle/contracts/`. (Note that `verifier_aggregator.sol` is created based on `aggregator/root.zok` file)
-31. Edit `FederatedModel.sol` for correct input variables.
+3. Copy `verifier.sol` files into `blockchain/truffle/contracts/`. (Note that `verifier_aggregator.sol` is created based on `aggregator/root.zok` file)
+4. Edit `FederatedModel.sol` for correct input variables.
+5. Start it all:
 
-4. Start it all
+            ./start.sh
 
-./start.sh
+6. Copy the contract address and paste into `CONFIG.yml`.
+7. Run:
 
-5. Copy the contract address and paste into `CONFIG.yml`
-
-6. Run
-
-python devices/main.py
+      python devices/main.py
+      
