@@ -12,7 +12,7 @@ sudo docker run -d -p 8545:8545 trufflesuite/ganache:v7.0.0 --miner.blockGasLimi
 sudo docker run -d --name rabbitmq -p 5672:5672 -p 5673:5673 -p 15672:15672 rabbitmq:3-management
 
 # recompile/remigrate smart contract files
-cd blockchain/Truffle/
+cd blockchain/truffle/
 sudo rm -rf build/contracts/*
 truffle compile
 truffle migrate
@@ -27,4 +27,14 @@ if [ -f "$balance_csv" ]; then
     echo "Done"
 else
     echo "$balance_csv was not found in directory."
+fi
+
+# remove gas_logs.log:
+gas_logs="gas_logs.log"
+echo "Deleting $gas_logs ..."
+if [ -f "$gas_logs" ]; then
+    sudo rm "${gas_logs}"
+    echo "Done"
+else
+    echo "$gas_logs was not found in directory."
 fi
