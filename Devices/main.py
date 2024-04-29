@@ -1,7 +1,7 @@
 import threading
 import time
 
-from edge_device.EdgeDevice import EdgeDevice
+from edge_device.edge_device import EdgeDevice
 from middleware.connection_manager import ConnectionManager
 from middleware.middleware import MiddleWare
 from utils.utils import get_config_file_path, read_yaml

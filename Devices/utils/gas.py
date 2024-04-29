@@ -51,9 +51,9 @@ def get_current_balance(
     return balance
 
 
-def log_receipt(receipt: dict, account: int):
+def log_receipt(receipt: dict, account: int, desc: str):
     if not receipt:
         raise Exception("Empty receipt received")
 
-    msg = f"account={str(account)}, receipt={str(receipt)}"
+    msg = f"account={str(account)}, desc={str(desc)}, receipt={str(receipt)}"
     logger.debug(msg)
