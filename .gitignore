@@ -708,3 +708,8 @@ verification/time_memory_analytics/aggregator/average_analytics.csv
 final_analytics.csv
 verification/zokrates/aggregator/witness_aggregator
 verification/zokrates/aggregator/proof_aggregator
+
+balance.csv
+
+
+devices/middleware/analytics/NumberOfParticipants_*
