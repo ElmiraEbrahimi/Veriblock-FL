@@ -476,7 +476,6 @@ class MiddleWare:
                     args=[w, b, mse_score, self.proof, self.round, balance],
                 )
                 thread.start()
-                # TODO: will fix?
                 thread.join()
 
                 print(

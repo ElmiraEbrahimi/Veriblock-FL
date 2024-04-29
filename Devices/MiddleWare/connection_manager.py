@@ -47,6 +47,7 @@ class ConnectionManager:
 
     def init_contract(self, accountNR):
         if self.is_connected() and accountNR == 0:
+            admin_account_nr = self.config["DEFAULT"]["BlockchainAdminAccountNumber"]
             np.random.seed(4)
             weights = (
                 np.random.randn(
@@ -76,18 +77,22 @@ class ConnectionManager:
 
             thxHash = self.FLcontractDeployed.functions.initModel(
                 weights, bias, is_no_proof
-            ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
-            self._await_transaction(thxHash, accountNr=accountNR)
+            ).transact({"from": self.web3Connection.eth.accounts[admin_account_nr]})
+            self._await_transaction(
+                thxHash, accountNr=admin_account_nr, desc="functions.initModel"
+            )
             thxHash = self.FLcontractDeployed.functions.updateVerifier(
                 self.config["DEFAULT"]["VerifierContractAddress"],
                 self.config["DEFAULT"]["VerifierAggregatorContractAddress"],
-            ).transact({"from": self.web3Connection.eth.accounts[0]})
-            self._await_transaction(thxHash, accountNr=accountNR)
+            ).transact({"from": self.web3Connection.eth.accounts[admin_account_nr]})
+            self._await_transaction(
+                thxHash, accountNr=admin_account_nr, desc="functions.updateVerifier"
+            )
 
             # init aggregator:
             first_aggregator_account_num = 12
             second_aggregator_account_num = 13
-            aggregator_selector_account_num = 14
+            aggregator_selector_account_num = admin_account_nr
 
             print("Initializing aggregators...")
             aggregators: list[OffChainAggregator] = [
@@ -119,6 +124,7 @@ class ConnectionManager:
                 connection_manager=self,
                 aggregators=aggregators,
                 account_number=aggregator_selector_account_num,
+                is_perform_proof_on=not is_no_proof,
             )
 
     def __check_ZKP(self, is_no_proof, proof, accountNR):
@@ -146,14 +152,12 @@ class ConnectionManager:
         c = [Web3.toInt(hexstr=x) for x in c]
         inputs = proof["inputs"]
         inputs = [Web3.toInt(hexstr=x) for x in inputs]
-        # istrue= self.FLcontractDeployed.functions.checkZKP(a,b,c, inputs).call({"from": self.web3Connection.eth.accounts[accountNR]})
-        # print(f"AccountNr = {accountNR}: ZKP went through",istrue)
 
         return a, b, c, inputs
 
-    def _await_transaction(self, thxHash, accountNr):
+    def _await_transaction(self, thxHash, accountNr, desc):
         receipt = self.web3Connection.eth.wait_for_transaction_receipt(thxHash)
-        log_receipt(receipt=receipt, account=accountNr)
+        log_receipt(receipt=receipt, account=accountNr, desc=desc)
 
     def is_connected(self):
         return self.web3Connection.isConnected()
@@ -184,23 +188,11 @@ class ConnectionManager:
         )
 
     def get_globalWeights(self, accountNR):
-        # we = self.FLcontractDeployed.functions.get_global_weights().call(
-        #     {"from": self.web3Connection.eth.accounts[accountNR]}
-        # )
-        # return we
-        # print(f"Fetching global weight from IPFS... {self.weight_ipfs_link=}")
         gw = self.ipfs.get_global_weight(self.weight_ipfs_link)
-        # print(f"IPFS global weight = {gw}")
         return gw
 
     def get_globalBias(self, accountNR):
-        # bias = self.FLcontractDeployed.functions.get_global_bias().call(
-        #     {"from": self.web3Connection.eth.accounts[accountNR]}
-        # )
-        # return bias
-        # print(f"Fetching global bias from IPFS... {self.bias_ipfs_link=}")
         gb = self.ipfs.get_global_bias(self.bias_ipfs_link)
-        # print(f"IPFS global bias = {gb}")
         return gb
 
     def get_account_balance(self, accountNR):
@@ -221,7 +213,9 @@ class ConnectionManager:
                 txhash = self.FLcontractDeployed.functions.end_update_round().transact(
                     {"from": self.web3Connection.eth.accounts[accountNR]}
                 )
-                self._await_transaction(txhash, accountNr=accountNR)
+                self._await_transaction(
+                    txhash, accountNr=accountNR, desc="functions.end_update_round"
+                )
 
             except Exception:
                 print(f"AccountNr = {accountNR}: Update Ending Reverted")
@@ -233,7 +227,9 @@ class ConnectionManager:
                             {"from": self.web3Connection.eth.accounts[accountNR]}
                         )
                     )
-                    self._await_transaction(txhash, accountNr=accountNR)
+                    self._await_transaction(
+                        txhash, accountNr=accountNR, desc="functions.end_update_round"
+                    )
                 except Exception as intx:
                     print(f"AccountNr = {accountNR}: Update Ending Reverted")
                     print(intx)
@@ -268,7 +264,9 @@ class ConnectionManager:
         thxHash = self.FLcontractDeployed.functions.send_wb_hash(
             wb_hash, a, b, c, inputs
         ).transact({"from": self.web3Connection.eth.accounts[accountNR]})
-        self._await_transaction(thxHash, accountNr=accountNR)
+        self._await_transaction(
+            thxHash, accountNr=accountNR, desc="functions.send_wb_hash"
+        )
 
         # if tx_receipt.status == 0:
         #     # Get the revert reason from the transaction receipt
