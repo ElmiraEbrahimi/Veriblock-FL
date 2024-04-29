@@ -116,9 +116,6 @@ class OffChainAggregator:
 
     def _send_aggregator_wb_link(self) -> bool:
         print(f"{self.name} calling function _send_aggregator_wb_link...")
-        # print(
-        #     f"Calling function __check_ZKP_aggregator with arg {self.new_generated_proof=}"
-        # )
         a, b, c, inputs = self._check_ZKP_aggregator(self.new_generated_proof)
 
         # save to ipfs:
@@ -137,7 +134,9 @@ class OffChainAggregator:
                 inputs,
             ).transact({"from": self.blockchain_account})
         )
-        self.connection_manager._await_Transaction(thxHash, accountNr=self.name)
+        self.connection_manager._await_transaction(
+            thxHash, accountNr=self.name, desc="functions.send_aggregator_wb"
+        )
 
         # save to Blockchain Client:
         self.connection_manager.weight_ipfs_link = gw_ipfs_link
@@ -162,7 +161,7 @@ class OffChainAggregator:
     def _check_ZKP_aggregator(self, proof):
         if self.is_no_proof:
             a_size = 2
-            input_size = 10
+            input_size = 4
             a = ["1"] * a_size
             b = [["1"] * a_size] * a_size
             c = ["1"] * a_size
