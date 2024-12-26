@@ -206,3 +206,5 @@ GITHUB-REPO-URL/tree/main
 
       python devices/main.py
       
+## Acknowledgement
+The financial support by the Austrian Federal Ministry for Digital and Economic Affairs, the National Foundation for Research, Technology and Development as well as the Christian Doppler Research Association is gratefully acknowledged.
