@@ -126,7 +126,7 @@ Change the `repeat` in analyze.py and `bs` (batchsize) in root.zok.
 
 It will generate two csv files named: `analytics.csv` and `analytics_memory.csv`.
 
-### ChartMart
+### Charts
 
 python calculate_analytics_avg.py
 
